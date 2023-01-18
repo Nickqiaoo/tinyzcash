@@ -1,13 +1,34 @@
-//! Run with
-//!
-//! ```not_rust
-//! cd examples && cargo run -p example-form
-//! ```
-
-use axum::{extract::Form, response::Html, routing::get, Router};
+use axum::{
+    extract::Form,
+    response::Json,
+    routing::{get, post},
+    Router,
+    extract::State,
+};
 use serde::Deserialize;
-use std::net::SocketAddr;
+use serde_json::{json, Value};
+use sqlx::mysql;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use redis::AsyncCommands;
+use tower_http::{trace::TraceLayer, timeout::TimeoutLayer};
+use tower::ServiceBuilder;
+
+struct Service {
+    mysql_pool :mysql::MySqlPool,
+    redis_pool : redis::Client,
+}
+
+impl Service {
+    async fn new() -> Self {
+        Service {
+            mysql_pool: mysql::MySqlPoolOptions::new()
+            .max_connections(5)
+            .connect("mysql://mysql:123456@localhost/test").await.unwrap(),
+            redis_pool: redis::Client::open("redis://127.0.0.1/").unwrap(),
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -18,9 +39,17 @@ async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+    let shared_state = Arc::new(Service::new().await);
 
-    // build our application with some routes
-    let app = Router::new().route("/", get(show_form).post(accept_form));
+    let app = Router::new()
+        .route("/list", get(list))
+        .route("/add", post(add))
+        .with_state(shared_state)
+        .layer(
+            ServiceBuilder::new()
+                .layer(TraceLayer::new_for_http())
+                .layer(TimeoutLayer::new(Duration::new(5, 0)))
+        );
 
     // run it with hyper
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -31,30 +60,29 @@ async fn main() {
         .unwrap();
 }
 
-async fn show_form() -> Html<&'static str> {
-    Html(
-        r#"
-        <!doctype html>
-        <html>
-            <head></head>
-            <body>
-                <form action="/" method="post">
-                    <label for="name">
-                        Enter your name:
-                        <input type="text" name="name">
-                    </label>
+async fn list(State(state): State<Arc<Service>>) -> Json<Value> {
+    let row: (i64,) = sqlx::query_as("SELECT $1")
+        .bind(150_i64)
+        .fetch_one(&state.mysql_pool)
+        .await
+        .unwrap();
 
-                    <label>
-                        Enter your email:
-                        <input type="text" name="email">
-                    </label>
+    let mut con = state.redis_pool.get_async_connection().await.unwrap();
 
-                    <input type="submit" value="Subscribe!">
-                </form>
-            </body>
-        </html>
-        "#,
-    )
+    let _: () = con.set("key1", b"foo").await.unwrap();
+
+    let _: () = redis::cmd("SET")
+        .arg(&["key2", "bar"])
+        .query_async(&mut con)
+        .await.unwrap();
+
+    let result = redis::cmd("MGET")
+        .arg(&["key1", "key2"])
+        .query_async(&mut con)
+        .await;
+    assert_eq!(result, Ok(("foo".to_string(), b"bar".to_vec())));
+    dbg!(&row);
+    Json(json!({ "data": 42 }))
 }
 
 #[derive(Deserialize, Debug)]
@@ -64,6 +92,6 @@ struct Input {
     email: String,
 }
 
-async fn accept_form(Form(input): Form<Input>) {
+async fn add(Form(input): Form<Input>) {
     dbg!(&input);
 }
