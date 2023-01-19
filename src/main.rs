@@ -1,31 +1,35 @@
 use axum::{
     extract::Form,
+    extract::State,
     response::Json,
     routing::{get, post},
     Router,
-    extract::State,
 };
+use redis::AsyncCommands;
 use serde::Deserialize;
 use serde_json::{json, Value};
 use sqlx::mysql;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use redis::AsyncCommands;
-use tower_http::{trace::TraceLayer, timeout::TimeoutLayer};
 use tower::ServiceBuilder;
+use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 struct Service {
-    mysql_pool :mysql::MySqlPool,
-    redis_pool : redis::Client,
+    mysql_pool: mysql::MySqlPool,
+    redis_pool: redis::Client,
+    http_client: reqwest::Client,
 }
 
 impl Service {
     async fn new() -> Self {
         Service {
             mysql_pool: mysql::MySqlPoolOptions::new()
-            .max_connections(5)
-            .connect("mysql://mysql:123456@localhost/test").await.unwrap(),
+                .max_connections(5)
+                .connect("mysql://root:123456@localhost/test")
+                .await
+                .unwrap(),
             redis_pool: redis::Client::open("redis://127.0.0.1/").unwrap(),
+            http_client: reqwest::Client::new(),
         }
     }
 }
@@ -48,7 +52,7 @@ async fn main() {
         .layer(
             ServiceBuilder::new()
                 .layer(TraceLayer::new_for_http())
-                .layer(TimeoutLayer::new(Duration::new(5, 0)))
+                .layer(TimeoutLayer::new(Duration::new(5, 0))),
         );
 
     // run it with hyper
@@ -61,7 +65,7 @@ async fn main() {
 }
 
 async fn list(State(state): State<Arc<Service>>) -> Json<Value> {
-    let row: (i64,) = sqlx::query_as("SELECT $1")
+    let row: (i64,) = sqlx::query_as("SELECT id from test")
         .bind(150_i64)
         .fetch_one(&state.mysql_pool)
         .await
@@ -74,15 +78,19 @@ async fn list(State(state): State<Arc<Service>>) -> Json<Value> {
     let _: () = redis::cmd("SET")
         .arg(&["key2", "bar"])
         .query_async(&mut con)
-        .await.unwrap();
+        .await
+        .unwrap();
 
     let result = redis::cmd("MGET")
         .arg(&["key1", "key2"])
         .query_async(&mut con)
         .await;
+    let content = state.http_client.get("http://haokan.baidu.com/?_format=json").send().await
+    .unwrap()
+    .json::<Value>().await.unwrap();
     assert_eq!(result, Ok(("foo".to_string(), b"bar".to_vec())));
     dbg!(&row);
-    Json(json!({ "data": 42 }))
+    Json(json!({ "id": row, "content": content}))
 }
 
 #[derive(Deserialize, Debug)]
