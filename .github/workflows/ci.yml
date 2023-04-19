@@ -3,11 +3,18 @@ name: CI
 on: [push]
 
 jobs:
-  build:
-
+  check_fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Cargo format
         run: cargo fmt --all -- --check
+
+check_clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cargo clippy
+        run: cargo clippy --all-targets --all-features --workspace -- -D warnings
