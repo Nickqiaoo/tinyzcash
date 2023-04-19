@@ -85,9 +85,15 @@ async fn list(State(state): State<Arc<Service>>) -> Json<Value> {
         .arg(&["key1", "key2"])
         .query_async(&mut con)
         .await;
-    let content = state.http_client.get("http://haokan.baidu.com/?_format=json").send().await
-    .unwrap()
-    .json::<Value>().await.unwrap();
+    let content = state
+        .http_client
+        .get("http://haokan.baidu.com/?_format=json")
+        .send()
+        .await
+        .unwrap()
+        .json::<Value>()
+        .await
+        .unwrap();
     assert_eq!(result, Ok(("foo".to_string(), b"bar".to_vec())));
     dbg!(&row);
     Json(json!({ "id": row, "content": content}))
