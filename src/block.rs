@@ -1,7 +1,10 @@
 use std::time;
 use sha2::{Sha256, Digest};
 use crate::pow::ProofOfWork;
+use serde::{Serialize, Deserialize};
+use serde_json;
 
+#[derive(Serialize, Deserialize)]
 pub struct Block {
     pub prev_block_hash: Vec<u8>,
     pub data: Vec<u8>,
@@ -40,5 +43,10 @@ impl Block {
     }
     pub fn genesis() -> Self {
         Block::new("Genesis Block", &[])
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        let json_str = serde_json::to_string(self).unwrap();
+        return json_str.into_bytes();
     }
 }
