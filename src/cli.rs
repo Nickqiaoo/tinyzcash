@@ -21,15 +21,16 @@ pub enum Command {
 
 
 impl CLI {
-    pub fn run(&self) {
+    pub fn run(&mut self) {
         match self.cmd {
             Command::AddBlock { data } => self.add_block(data),
             Command::PrintChain => self.print_chain(),
         }
     }
 
-    fn add_block(&self, data: &str) {
+    fn add_block(&mut self, data: String) {
         // Add block implementation
+        self.bc.add_block(data.as_str())
     }
 
     fn print_chain(&self) {

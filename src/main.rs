@@ -7,7 +7,7 @@ mod cli;
 
 fn main() {
     let bc = blockchain::Blockchain::new();
-    let c = cli::CLI{
+    let mut c = cli::CLI{
         bc,
         cmd:cli::Command::from_args()
     };
