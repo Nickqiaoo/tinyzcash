@@ -20,6 +20,7 @@ impl Blockchain {
             b.insert(&genesis.hash, genesis.serialize()).unwrap();
             b.insert(b"l", genesis.hash.as_slice()).unwrap();
             tip = genesis.hash.to_vec();
+            b.flush().unwrap();
         } else {
             tip = b.get(b"l").unwrap().unwrap().to_vec();
         }

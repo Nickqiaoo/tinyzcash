@@ -2,3 +2,4 @@ target/*
 *.lock
 launch.json
 .DS*
+db.file/*

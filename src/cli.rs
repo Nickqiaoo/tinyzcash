@@ -22,8 +22,14 @@ pub enum Command {
 
 impl CLI {
     pub fn run(&mut self) {
+        let data = if let Command::AddBlock { data } = &self.cmd {
+            Some(data.clone())
+        } else {
+            None
+        };
+
         match self.cmd {
-            Command::AddBlock { data } => self.add_block(data),
+            Command::AddBlock { data: _ } => self.add_block(data.unwrap()),
             Command::PrintChain => self.print_chain(),
         }
     }

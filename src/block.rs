@@ -50,3 +50,8 @@ impl Block {
         return json_str.into_bytes();
     }
 }
+
+fn deserialize_block(d: &[u8]) -> Result<Block, serde_json::Error> {
+    let block: Block = serde_json::from_slice(d)?;
+    Ok(block)
+}
