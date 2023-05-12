@@ -1,45 +1,52 @@
-use structopt::StructOpt;
+use std::println;
 
-use crate::blockchain;
+use structopt::StructOpt;
+use crate::{blockchain::Blockchain, pow::ProofOfWork};
 
 pub struct CLI {
-    pub bc: blockchain::Blockchain,
     pub cmd: Command
 }
 
 #[derive(StructOpt, Debug)]
 #[structopt(name = "blockchain", about = "A simple CLI application")]
 pub enum Command {
-    #[structopt(name = "addblock", about = "Add a block to the chain")]
-    AddBlock {
-        #[structopt(help = "Block data")]
-        data: String,
+    #[structopt(name = "createBlockchain", about = "CreateBlockChain")]
+    CreateBlockChain {
+        #[structopt(help = "Address")]
+        address: String,
     },
     #[structopt(name = "printchain", about = "Print the chain")]
     PrintChain,
+     
 }
-
 
 impl CLI {
     pub fn run(&mut self) {
-        let data = if let Command::AddBlock { data } = &self.cmd {
-            Some(data.clone())
-        } else {
-            None
-        };
-
-        match self.cmd {
-            Command::AddBlock { data: _ } => self.add_block(data.unwrap()),
+        match &self.cmd {
+            Command::CreateBlockChain { address } => self.create_blockchain(address.to_string()),
             Command::PrintChain => self.print_chain(),
         }
     }
 
-    fn add_block(&mut self, data: String) {
-        // Add block implementation
-        self.bc.add_block(data.as_str())
+    fn create_blockchain(&self, address: String) {
+        Blockchain::new(address.as_str());
+        println!("Done");
     }
 
     fn print_chain(&self) {
-        // Print chain implementation
+        let bc = Blockchain::new("");
+        let mut bci = bc.iterator();
+
+        loop {
+            if let Some(block) = bci.next() {
+                println!("Prev. hash: {:}", hex::encode(&block.prev_block_hash));
+                println!("Hash: {:}", hex::encode(&block.hash));
+                let pow = ProofOfWork::new(&block);
+                println!("PoW: {:}", pow.validate());
+                println!();
+            } else {
+                break;
+            }
+        }
     }
 }

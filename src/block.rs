@@ -1,24 +1,24 @@
 use std::time;
-use sha2::{Sha256, Digest};
-use crate::pow::ProofOfWork;
+use crate::{pow::ProofOfWork, transaction::Transaction};
 use serde::{Serialize, Deserialize};
 use serde_json;
+use sha2::{Sha256, Digest};
 
 #[derive(Serialize, Deserialize)]
 pub struct Block {
     pub prev_block_hash: Vec<u8>,
-    pub data: Vec<u8>,
+    pub transactions: Vec<Transaction>,
     pub timestamp: i64,
     pub hash: Vec<u8>,
     pub nonce: u64,
 }
 
 impl Block {
-    pub fn new(data: &str, prev_block_hash: &[u8]) -> Self {
+    pub fn new(transactions: Vec<Transaction>, prev_block_hash: &[u8]) -> Self {
         let timestamp = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_secs() as i64;
         let mut block = Block {
             prev_block_hash: prev_block_hash.to_vec(),
-            data: data.as_bytes().to_vec(),
+            transactions,
             timestamp,
             hash: vec![],
             nonce:0,
@@ -33,25 +33,28 @@ impl Block {
         block
     }
 
-    pub fn set_hash(&mut self){
-        let timestamp = self.timestamp.to_string().into_bytes();
-        let headers = [self.prev_block_hash.as_slice(), self.data.as_slice(), &timestamp[..]].concat();
-        let mut hasher = Sha256::new();
-        hasher.update(headers);
-        let hash = hasher.finalize();
-        self.hash = hash.to_vec();
-    }
-    pub fn genesis() -> Self {
-        Block::new("Genesis Block", &[])
+    pub fn genesis(coinbase: Transaction) -> Self {
+        Block::new(vec![coinbase], &[])
     }
 
     pub fn serialize(&self) -> Vec<u8> {
         let json_str = serde_json::to_string(self).unwrap();
         return json_str.into_bytes();
     }
+
+    pub fn hash_transactions(&self) -> Vec<u8> {
+        let mut tx_hashes = Vec::new();
+
+        for tx in &self.transactions {
+            tx_hashes.push(tx.id.clone());
+        }
+
+        let concatenated_hashes = tx_hashes.concat();
+        Sha256::digest(&concatenated_hashes).to_vec()
+    }
 }
 
-fn deserialize_block(d: &[u8]) -> Result<Block, serde_json::Error> {
+pub fn deserialize_block(d: &[u8]) -> Result<Block, serde_json::Error> {
     let block: Block = serde_json::from_slice(d)?;
     Ok(block)
 }

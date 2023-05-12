@@ -4,11 +4,13 @@ mod block;
 mod blockchain;
 mod pow;
 mod cli;
+mod iterator;
+mod transaction;
+mod transaction_output;
+mod transaction_input;
 
 fn main() {
-    let bc = blockchain::Blockchain::new();
     let mut c = cli::CLI{
-        bc,
         cmd:cli::Command::from_args()
     };
     c.run()
