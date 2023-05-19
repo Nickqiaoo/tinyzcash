@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{block::Block, iterator::BlockchainIterator, transaction::{Transaction, new_coinbase_tx}};
+use crate::{block::Block, iterator::BlockchainIterator, transaction::{Transaction, new_coinbase_tx}, transaction_output::TXOutput};
 use sled;
 
 const COINBASEDATA: &str = "coinbase";
@@ -31,6 +31,32 @@ impl Blockchain {
         Blockchain { tip, db }
     }
 
+    pub fn find_utxo(&self, address: &str) -> Vec<TXOutput> {
+        let mut utxos = Vec::new();
+        let unspent_transactions = self.find_unspent_transactions(address);
+
+        for tx in unspent_transactions {
+            for out in tx.vout {
+                if out.can_be_unlocked_with(address) {
+                    utxos.push(out.clone());  // Assuming TXOutput implements Clone trait
+                }
+            }
+        }
+
+        utxos
+    }
+
+    pub fn mine_block(&mut self, transactions :Vec<Transaction>) {
+        let b = self.db.open_tree("blocksBucket").unwrap();
+        let prev_block_hash = b.get(b"l").unwrap().unwrap().to_vec();
+        
+        let new_block = Block::new(transactions, prev_block_hash);
+        self.tip = new_block.hash.to_vec();
+
+        b.insert(&new_block.hash, new_block.serialize()).unwrap();
+        b.insert(b"l", new_block.hash.as_slice()).unwrap();
+        b.flush().unwrap();
+    }
     
     pub fn iterator(&self) -> BlockchainIterator {
         BlockchainIterator {
@@ -45,7 +71,7 @@ impl Blockchain {
         let mut accumulated = 0;
 
         'Work: for tx in &unspent_txs {
-            let tx_id = String::from_utf8(tx.id.clone()).unwrap();
+            let tx_id = hex::encode(tx.id.clone());
 
             for (out_idx, out) in tx.vout.iter().enumerate() {
                 if out.can_be_unlocked_with(address) && accumulated < amount {
@@ -70,7 +96,7 @@ impl Blockchain {
 
         while let Some(block) = bci.next() {
             for tx in &block.transactions {
-                let tx_id = String::from_utf8(tx.id.clone()).unwrap();
+                let tx_id = hex::encode(tx.id.clone());
 
                 // 检查所有输出是否被花费
                 for (out_idx, out) in tx.vout.iter().enumerate() {
@@ -86,7 +112,7 @@ impl Blockchain {
                 if !tx.is_coinbase() {
                     for input in &tx.vin {
                         if input.can_unlock_output_with(address) {
-                            let in_tx_id = String::from_utf8(tx.id.clone()).unwrap();
+                            let in_tx_id = hex::encode(input.txid.clone());
                             spent_txos.entry(in_tx_id).or_insert_with(Vec::new).push(input.vout);
                         }
                     }

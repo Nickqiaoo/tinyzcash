@@ -1,4 +1,4 @@
-use std::time;
+use std::{time, vec};
 use crate::{pow::ProofOfWork, transaction::Transaction};
 use serde::{Serialize, Deserialize};
 use serde_json;
@@ -14,10 +14,10 @@ pub struct Block {
 }
 
 impl Block {
-    pub fn new(transactions: Vec<Transaction>, prev_block_hash: &[u8]) -> Self {
+    pub fn new(transactions: Vec<Transaction>, prev_block_hash: Vec<u8>) -> Self {
         let timestamp = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_secs() as i64;
         let mut block = Block {
-            prev_block_hash: prev_block_hash.to_vec(),
+            prev_block_hash: prev_block_hash,
             transactions,
             timestamp,
             hash: vec![],
@@ -34,7 +34,7 @@ impl Block {
     }
 
     pub fn genesis(coinbase: Transaction) -> Self {
-        Block::new(vec![coinbase], &[])
+        Block::new(vec![coinbase], Vec::new())
     }
 
     pub fn serialize(&self) -> Vec<u8> {

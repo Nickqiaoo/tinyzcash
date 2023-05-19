@@ -1,7 +1,7 @@
-use std::println;
+use std::{println, vec};
 
 use structopt::StructOpt;
-use crate::{blockchain::Blockchain, pow::ProofOfWork};
+use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction::Transaction};
 
 pub struct CLI {
     pub cmd: Command
@@ -15,9 +15,25 @@ pub enum Command {
         #[structopt(help = "Address")]
         address: String,
     },
+
     #[structopt(name = "printchain", about = "Print the chain")]
     PrintChain,
-     
+
+    #[structopt(name = "send", about = "send")]
+    Send {
+        #[structopt(help = "from")]
+        from: String,
+        #[structopt(help = "to")]
+        to: String,
+        #[structopt(help = "amount")]
+        amount: i64,
+    },
+
+    #[structopt(name = "getbalance", about = "getbalance")]
+    Getbalance {
+        #[structopt(help = "Address")]
+        address: String,
+    },
 }
 
 impl CLI {
@@ -25,6 +41,8 @@ impl CLI {
         match &self.cmd {
             Command::CreateBlockChain { address } => self.create_blockchain(address.to_string()),
             Command::PrintChain => self.print_chain(),
+            Command::Send { from, to, amount } => self.send(from.to_string(), to.to_string(), amount.clone()),
+            Command::Getbalance { address } => self.get_balance(address.to_string()),
         }
     }
 
@@ -43,10 +61,31 @@ impl CLI {
                 println!("Hash: {:}", hex::encode(&block.hash));
                 let pow = ProofOfWork::new(&block);
                 println!("PoW: {:}", pow.validate());
+                println!("Transactions:");
+                for (i, tx) in block.transactions.iter().enumerate() {
+                    println!("tx {:}: {:}", i, tx);
+                }
                 println!();
             } else {
                 break;
             }
         }
+    }
+
+    fn send(&self, from: String, to: String, amount: i64) {
+        let mut bc = Blockchain::new("");
+        let tx  = Transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
+        bc.mine_block(vec![tx]);
+        println!("Success!");
+    }
+
+    fn get_balance(&self, address: String) {
+        let bc = Blockchain::new("");
+        let mut balance = 0;
+        let utxos = bc.find_utxo(address.as_str());
+        for out in utxos {
+            balance += out.value;
+        }
+        println!("Balance of '{}': {}", address, balance);
     }
 }
