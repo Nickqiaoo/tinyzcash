@@ -1,7 +1,7 @@
 use std::{println, vec};
 
 use structopt::StructOpt;
-use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction::Transaction};
+use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction};
 
 pub struct CLI {
     pub cmd: Command
@@ -74,7 +74,7 @@ impl CLI {
 
     fn send(&self, from: String, to: String, amount: i64) {
         let mut bc = Blockchain::new("");
-        let tx  = Transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
+        let tx  = transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
         bc.mine_block(vec![tx]);
         println!("Success!");
     }
