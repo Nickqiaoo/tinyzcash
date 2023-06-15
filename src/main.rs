@@ -9,6 +9,7 @@ mod transaction;
 mod transaction_output;
 mod transaction_input;
 mod wallet;
+mod wallets;
 
 fn main() {
     let mut c = cli::CLI{

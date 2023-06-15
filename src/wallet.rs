@@ -1,5 +1,4 @@
 use secp256k1::{Secp256k1, PublicKey, SecretKey};
-use std::collections::HashMap;
 use sha2::{Sha256, Digest};
 use ripemd160::{Ripemd160, Digest as RipemdDigest};
 use rand::Rng;
@@ -11,10 +10,6 @@ const CHECKSUM_LENGTH: usize = 4;
 pub struct Wallet {
     private_key: SecretKey,
     public_key: PublicKey,
-}
-
-pub struct Wallets {
-    wallets: HashMap<String, Wallet>,
 }
 
 impl Wallet {
