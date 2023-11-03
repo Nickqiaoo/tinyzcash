@@ -1,9 +1,8 @@
-use num::BigUint;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{fmt, collections::HashMap};
 
-use crate::{blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput};
+use crate::{blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput, wallets::Wallets, wallet};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
@@ -28,14 +27,10 @@ impl Transaction {
     }
 
     fn hash(&self) -> Vec<u8> {
-        let mut hash = [0; 32];
-
         let mut tx_copy = self.clone();
         tx_copy.id = vec![];
 
-        hash = sha256::hash(tx_copy.serialize().as_slice());
-
-        hash.to_vec()
+        Sha256::digest(tx_copy.serialize().as_bytes()).to_vec()
     }
 
     fn trimmed_copy(&self) -> Transaction {
@@ -46,8 +41,8 @@ impl Transaction {
             inputs.push(TXInput {
                 txid: vin.txid.clone(),
                 vout: vin.vout,
-                signature: None,
-                pub_key: None,
+                signature: vec![],
+                pub_key: vec![],
             });
         }
 
@@ -75,32 +70,45 @@ impl Transaction {
                 .get(&hex::encode(vin.txid.as_slice()))
                 .unwrap()
                 .id
-                .is_none()
+                .is_empty()
             {
                 panic!("ERROR: Previous transaction is not correct");
             }
         }
-        let mut tx_copy = tx.trimmed_copy();
-
-        for (in_id, vin) in tx_copy.vin.iter_mut().enumerate() {
-            let prev_tx = prev_txs.get(&vin.txid).unwrap();
-            vin.signature = None;
-            vin.pub_key = prev_tx.vout[vin.vout].pub_key_hash.clone();
-
-            let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.hash()).unwrap();
+        let mut tx_copy = self.trimmed_copy();
+        
+        for in_id in 0..tx_copy.vin.len() {
+            let mut vin = tx_copy.vin[in_id].clone();
+            let prev_tx = prev_txs.get(&hex::encode(&vin.txid)).unwrap();
+            vin.signature = vec![];
+            vin.pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
+            
+            tx_copy.vin[in_id] = vin;
+            tx_copy.id = tx_copy.hash();
+            tx_copy.vin[in_id].pub_key = vec![];
+        
+            let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
             let context = secp256k1::Secp256k1::new();
-
-            let mut rng = secp256k1::OsRng;
-            let (signature, _) = context.sign(&tx_copy_message, private_key, &mut rng);
-            let (r, s) = signature.serialize();
-
-            let mut signature_vec = Vec::new();
-            signature_vec.extend_from_slice(&r[..]);
-            signature_vec.extend_from_slice(&s[..]);
-
-            self.vin[in_id].signature = Some(signature_vec);
-            tx_copy.vin[in_id].pub_key = None;
+            let signature = context.sign(&tx_copy_message, &private_key);
+            let sig = signature.serialize_compact();
+        
+            tx_copy.vin[in_id].signature = sig.to_vec();
         }
+        
+        // for (in_id, vin) in tx_copy.vin.iter_mut().enumerate() {
+        //     let prev_tx = prev_txs.get(&hex::encode(&vin.txid)).unwrap();
+        //     vin.signature = vec![];
+        //     vin.pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
+        //     tx_copy.id = tx_copy.hash();
+        //     vin.pub_key = vec![];
+
+        //     let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
+        //     let context = secp256k1::Secp256k1::new();
+        //     let signature = context.sign(&tx_copy_message, &private_key);
+        //     let sig = signature.serialize_compact();
+
+        //     self.vin[in_id].signature = sig.to_vec();
+        // }
     }
 
     pub fn verify(&self, prev_txs: &HashMap<String, Transaction>) -> bool {
@@ -109,22 +117,17 @@ impl Transaction {
         
         for (in_id, vin) in self.vin.iter().enumerate() {
             let prev_tx = &prev_txs[&hex::encode(&vin.txid)];
-            tx_copy.vin[in_id].signature = None;
+            tx_copy.vin[in_id].signature = vec![];
             tx_copy.vin[in_id].pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
             tx_copy.id = tx_copy.hash();
-            tx_copy.vin[in_id].pub_key = None;
+            tx_copy.vin[in_id].pub_key = vec![];
             
-            let r = BigUint::from_bytes_be(&vin.signature[..(vin.signature.len() / 2)]);
-            let s = BigUint::from_bytes_be(&vin.signature[(vin.signature.len() / 2)..]);
-            let x = BigUint::from_bytes_be(&vin.pub_key[..(vin.pub_key.len() / 2)]);
-            let y = BigUint::from_bytes_be(&vin.pub_key[(vin.pub_key.len() / 2)..]);
+            let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
     
-            let pk = PublicKey::from_slice(&secp, &x.to_bytes_be(), &y.to_bytes_be()).unwrap();
+            let pk = secp256k1::PublicKey::from_slice(&vin.pub_key).unwrap();
     
-            let sig = Signature::from_der(&secp, &vin.signature).unwrap();
-            //let pubkey = secp256k1::PublicKey::from_slice(&input.pub_key).unwrap();
-            //let signature = secp256k1::Signature::from_der(&input.signature).unwrap();
-            if !secp.verify(&tx_copy.id.into_inner(), &sig, &pk).is_ok() {
+            let sig = secp256k1::Signature::from_compact(&vin.signature).unwrap();
+            if !secp.verify(&tx_copy_message, &sig, &pk).is_ok() {
                 return false;
             }
         }
@@ -135,7 +138,14 @@ impl Transaction {
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.serialize())
+        _ = write!(f, "{}\n", hex::encode(&self.id));
+        for (i, v) in self.vin.iter().enumerate() {
+            _ = write!(f, "vin{}>>>{}\n", i, v);
+        }
+        for (i, v) in self.vout.iter().enumerate() {
+            _ = write!(f, "vout{}>>>{}\n", i, v);
+        }
+        Ok(())
     }
 }
 
@@ -143,12 +153,10 @@ pub fn new_coinbase_tx(to: &str, data: &str) -> Transaction {
     let txin = TXInput {
         txid: vec![],
         vout: -1,
-        script_sig: String::from(data),
+        signature: vec![],
+        pub_key: vec![],
     };
-    let txout = TXOutput {
-        value: 10,
-        script_pub_key: to.to_string(),
-    };
+    let txout = TXOutput::new(10, to);
     let mut tx = Transaction {
         id: vec![],
         vin: vec![txin],
@@ -163,33 +171,31 @@ pub fn new_utxo_transaction(from: String, to: String, amount: i64, bc: &Blockcha
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
 
-    let (acc, valid_outputs) = bc.find_spendable_outputs(from.as_str(), amount);
+    let wallets = Wallets::new();
+    let wallet = wallets.get_wallet(&from).unwrap();
+    let pub_key_hash = wallet::hash_pub_key(wallet.public_key.as_bytes());
+
+    let (acc, valid_outputs) = bc.find_spendable_outputs(&pub_key_hash, amount);
     if acc < amount {
         panic!("ERROR: Not enough funds");
     }
 
-    // Build a list of inputs
     for (txid, outs) in valid_outputs {
+        let tx_id = hex::decode(txid.clone()).unwrap();
         for out in outs {
             let input = TXInput {
-                txid: hex::decode(txid.clone()).unwrap(),
+                txid: tx_id.clone(),
                 vout: out,
-                script_sig: from.to_string(),
+                signature: vec![],
+                pub_key: wallet.public_key.clone().into_bytes(),
             };
             inputs.push(input);
         }
     }
 
-    // Build a list of outputs
-    outputs.push(TXOutput {
-        value: amount,
-        script_pub_key: to.to_string(),
-    });
+    outputs.push(TXOutput::new(amount, &to));
     if acc > amount {
-        outputs.push(TXOutput {
-            value: acc - amount,
-            script_pub_key: from.to_string(),
-        }); // a change
+        outputs.push(TXOutput::new(acc - amount, &from));
     }
 
     let mut tx = Transaction {
@@ -198,6 +204,6 @@ pub fn new_utxo_transaction(from: String, to: String, amount: i64, bc: &Blockcha
         id: Vec::new(),
     };
     tx.set_id();
-
+    bc.sign_transaction(&mut tx, wallet.private_key.clone());
     tx
 }

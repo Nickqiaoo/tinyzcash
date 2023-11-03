@@ -1,36 +1,44 @@
 use secp256k1::{Secp256k1, PublicKey, SecretKey};
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
 use ripemd160::{Ripemd160, Digest as RipemdDigest};
 use rand::Rng;
 use bs58;
 
 const VERSION: u8 = 0x00;
-const CHECKSUM_LENGTH: usize = 4;
+pub(crate) const CHECKSUM_LENGTH: usize = 4;
 
+#[derive(Serialize, Deserialize)]
 pub struct Wallet {
-    private_key: SecretKey,
-    public_key: PublicKey,
-}
-
-pub struct Wallets {
-    wallets: HashMap<String, Wallet>,
+    pub private_key: String,
+    pub public_key: String,
 }
 
 impl Wallet {
     pub fn new() -> Wallet {
         let (private_key, public_key) = new_key_pair();
-        Wallet { private_key, public_key }
+        
+        Wallet {private_key: private_key.to_string(), public_key:  public_key.to_string()}
     }
 
-    pub fn get_address(&self) -> Vec<u8> {
-        let pub_key_hash = hash_pub_key(&self.public_key.serialize());
+    pub fn get_address(&self) -> String {
+        let pub_key_hash = hash_pub_key(self.public_key.as_bytes());
         let mut versioned_payload = vec![VERSION];
         versioned_payload.extend_from_slice(&pub_key_hash);
         let checksum = checksum(&versioned_payload);
         versioned_payload.extend_from_slice(&checksum);
-        bs58::encode(&versioned_payload).into_vec()
+        bs58::encode(&versioned_payload).into_string()
     }
+}
+
+pub fn validate_address(address: &String) -> bool {
+    let pub_key_hash = bs58::decode(address).into_vec().unwrap();
+    let actual_checksum = &pub_key_hash[pub_key_hash.len() - CHECKSUM_LENGTH..];
+    let version = pub_key_hash[0];
+    let pub_key_hash = &pub_key_hash[1..pub_key_hash.len() - CHECKSUM_LENGTH];
+    let target_checksum = checksum([&[version], pub_key_hash].concat().as_slice());
+
+    actual_checksum == target_checksum
 }
 
 pub fn new_key_pair() -> (SecretKey, PublicKey) {

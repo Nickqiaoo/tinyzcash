@@ -36,13 +36,13 @@ impl Blockchain {
         Blockchain { tip, db }
     }
 
-    pub fn find_utxo(&self, address: &str) -> Vec<TXOutput> {
+    pub fn find_utxo(&self, pub_key_hash: &Vec<u8>) -> Vec<TXOutput> {
         let mut utxos = Vec::new();
-        let unspent_transactions = self.find_unspent_transactions(address);
+        let unspent_transactions = self.find_unspent_transactions(pub_key_hash);
 
         for tx in unspent_transactions {
             for out in tx.vout {
-                if out.can_be_unlocked_with(address) {
+                if out.is_locked_with_key(pub_key_hash) {
                     utxos.push(out.clone()); // Assuming TXOutput implements Clone trait
                 }
             }
@@ -72,7 +72,7 @@ impl Blockchain {
 
     pub fn find_spendable_outputs(
         &self,
-        address: &str,
+        address: &Vec<u8>,
         amount: i64,
     ) -> (i64, HashMap<String, Vec<i32>>) {
         let mut unspent_outputs = HashMap::new();
@@ -83,7 +83,7 @@ impl Blockchain {
             let tx_id = hex::encode(tx.id.clone());
 
             for (out_idx, out) in tx.vout.iter().enumerate() {
-                if out.can_be_unlocked_with(address) && accumulated < amount {
+                if out.is_locked_with_key(address) && accumulated < amount {
                     accumulated += out.value;
                     let outputs = unspent_outputs.entry(tx_id.clone()).or_insert(Vec::new());
                     outputs.push(out_idx as i32);
@@ -98,7 +98,7 @@ impl Blockchain {
         (accumulated, unspent_outputs)
     }
 
-    fn find_unspent_transactions(&self, address: &str) -> Vec<Transaction> {
+    fn find_unspent_transactions(&self, address: &Vec<u8>) -> Vec<Transaction> {
         let mut unspent_txs: Vec<Transaction> = Vec::new();
         let mut spent_txos = HashMap::new();
         let mut bci = self.iterator();
@@ -115,7 +115,7 @@ impl Blockchain {
                     {
                         continue;
                     }
-                    if out.can_be_unlocked_with(address) {
+                    if out.is_locked_with_key(address) {
                         unspent_txs.push(tx.clone());
                     }
                 }
@@ -123,7 +123,7 @@ impl Blockchain {
                 // 更新已花费的输出
                 if !tx.is_coinbase() {
                     for input in &tx.vin {
-                        if input.can_unlock_output_with(address) {
+                        if input.use_key(address) {
                             let in_tx_id = hex::encode(input.txid.clone());
                             spent_txos
                                 .entry(in_tx_id)
@@ -141,13 +141,13 @@ impl Blockchain {
         unspent_txs
     }
 
-    fn find_transaction(&self, id: Vec<u8>) -> Result<Transaction, Box<dyn Error>> {
+    fn find_transaction(&self, id: &Vec<u8>) -> Result<Transaction, Box<dyn Error>> {
         let mut bci = self.iterator();
 
         loop {
             if let Some(block) = bci.next() {
                 for tx in &block.transactions {
-                    if tx.id == id {
+                    if tx.id == *id {
                         return Ok(tx.clone());
                     }
                 }
@@ -161,26 +161,27 @@ impl Blockchain {
         Err("TransactionNotFound".into())
     }
 
-    fn sign_transaction(&self, tx: &mut Transaction, priv_key: SecretKey) {
-        let secp = Secp256k1::new();
+    pub fn sign_transaction(&self, tx: &mut Transaction, priv_key: String) {
+        let priv_key = secp256k1::SecretKey::from_slice(priv_key.as_bytes()).unwrap();
         let mut prev_txs = HashMap::new();
 
         for vin in tx.vin.iter() {
-            let prev_tx_result = self.find_transaction(vin.txid);
+            let prev_tx_result = self.find_transaction(&vin.txid);
             if let Ok(prev_tx) = prev_tx_result {
-                prev_txs.insert(hex::encode(prev_tx.id()), prev_tx);
+                prev_txs.insert(hex::encode(&prev_tx.id), prev_tx);
             }
         }
 
-        tx.sign(priv_key, prev_txs);
+        tx.sign(priv_key, &prev_txs);
     }
-    fn verify_transaction(&self, tx: &Transaction) -> bool {
+    
+    pub fn verify_transaction(&self, tx: &Transaction) -> bool {
         let mut prev_txs = HashMap::new();
 
         for vin in tx.vin.iter() {
-            let prev_tx_result = self.find_transaction(vin.txid);
+            let prev_tx_result = self.find_transaction(&vin.txid);
             if let Ok(prev_tx) = prev_tx_result {
-                prev_txs.insert(hex::encode(prev_tx.id()), prev_tx);
+                prev_txs.insert(hex::encode(&prev_tx.id), prev_tx);
             }
         }
 
