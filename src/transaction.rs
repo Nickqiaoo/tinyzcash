@@ -25,8 +25,7 @@ impl Transaction {
     }
 
     pub fn serialize(&self) -> String {
-        let json_str = serde_json::to_string(self).unwrap();
-        json_str
+        serde_json::to_string(self).unwrap()
     }
 
     fn hash(&self) -> Vec<u8> {
@@ -121,7 +120,7 @@ impl Transaction {
                     .unwrap();
 
             let sig = secp256k1::Signature::from_compact(&vin.signature).unwrap();
-            if !secp.verify(&tx_copy_message, &sig, &pk).is_ok() {
+            if secp.verify(&tx_copy_message, &sig, &pk).is_err() {
                 return false;
             }
         }
@@ -132,12 +131,12 @@ impl Transaction {
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        _ = write!(f, "{}\n", hex::encode(&self.id));
+        _ = writeln!(f, "{}", hex::encode(&self.id));
         for (i, v) in self.vin.iter().enumerate() {
-            _ = write!(f, "vin{}>>>{}\n", i, v);
+            _ = writeln!(f, "vin{}>>>{}", i, v);
         }
         for (i, v) in self.vout.iter().enumerate() {
-            _ = write!(f, "vout{}>>>{}\n", i, v);
+            _ = writeln!(f, "vout{}>>>{}", i, v);
         }
         Ok(())
     }

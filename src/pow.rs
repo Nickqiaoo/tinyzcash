@@ -53,7 +53,7 @@ impl<'a> ProofOfWork<'a> {
             let data = self.prepare_data(nonce);
 
             let result = Sha256::digest(&data);
-            hash.copy_from_slice(&result.as_slice());
+            hash.copy_from_slice(result.as_slice());
             hash_int = BigUint::from_bytes_le(&hash);
             hash.reverse();
 

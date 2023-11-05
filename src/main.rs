@@ -12,7 +12,7 @@ mod wallet;
 mod wallets;
 
 fn main() {
-    let mut c = cli::CLI {
+    let mut c = cli::Cli {
         cmd: cli::Command::from_args(),
     };
     c.run();

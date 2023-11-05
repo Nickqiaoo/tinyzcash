@@ -3,7 +3,7 @@ use std::{println, vec};
 use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction, wallet, wallets::Wallets};
 use structopt::StructOpt;
 
-pub struct CLI {
+pub struct Cli {
     pub cmd: Command,
 }
 
@@ -42,7 +42,7 @@ pub enum Command {
     },
 }
 
-impl CLI {
+impl Cli {
     pub fn run(&mut self) {
         match &self.cmd {
             Command::CreateBlockChain { address } => self.create_blockchain(address.to_string()),
@@ -50,7 +50,7 @@ impl CLI {
             Command::PrintChain => self.print_chain(),
             Command::ListAddress => self.list_address(),
             Command::Send { from, to, amount } => {
-                self.send(from.to_string(), to.to_string(), amount.clone())
+                self.send(from.to_string(), to.to_string(), *amount)
             }
             Command::Getbalance { address } => self.get_balance(address.to_string()),
         }
@@ -79,20 +79,16 @@ impl CLI {
         let bc = Blockchain::new("");
         let mut bci = bc.iterator();
 
-        loop {
-            if let Some(block) = bci.next() {
-                println!("Prev hash: {:}", hex::encode(&block.prev_block_hash));
-                println!("Hash: {:}", hex::encode(&block.hash));
-                let pow = ProofOfWork::new(&block);
-                println!("PoW: {:}", pow.validate());
-                println!("Transactions:");
-                for (i, tx) in block.transactions.iter().enumerate() {
-                    println!("tx{:}: {:}", i, tx);
-                }
-                println!();
-            } else {
-                break;
+        while let Some(block) = bci.next() {
+            println!("Prev hash: {:}", hex::encode(&block.prev_block_hash));
+            println!("Hash: {:}", hex::encode(&block.hash));
+            let pow = ProofOfWork::new(&block);
+            println!("PoW: {:}", pow.validate());
+            println!("Transactions:");
+            for (i, tx) in block.transactions.iter().enumerate() {
+                println!("tx{:}: {:}", i, tx);
             }
+            println!();
         }
     }
 
@@ -104,7 +100,7 @@ impl CLI {
             panic!("Recipient address is not valid")
         }
         let mut bc = Blockchain::new(&from);
-        let tx = transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
+        let tx = transaction::new_utxo_transaction(from, to, amount, &bc);
         bc.mine_block(vec![tx]);
         println!("Success!");
     }

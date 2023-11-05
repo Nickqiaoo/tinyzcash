@@ -1,4 +1,3 @@
-use bs58;
 use rand::Rng;
 use ripemd160::{Digest as RipemdDigest, Ripemd160};
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -67,7 +66,7 @@ pub fn hash_pub_key(pub_key: &[u8]) -> Vec<u8> {
 pub fn checksum(payload: &[u8]) -> Vec<u8> {
     let first_sha = Sha256::digest(payload);
 
-    let second_sha = Sha256::digest(&first_sha.as_slice());
+    let second_sha = Sha256::digest(first_sha.as_slice());
 
     second_sha[0..CHECKSUM_LENGTH].to_vec()
 }

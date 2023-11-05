@@ -4,7 +4,6 @@ use crate::{
     transaction::{new_coinbase_tx, Transaction},
     transaction_output::TXOutput,
 };
-use sled;
 use std::{collections::HashMap, error::Error};
 
 const COINBASEDATA: &str = "coinbase";

@@ -1,6 +1,5 @@
 use crate::{pow::ProofOfWork, transaction::Transaction};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use sha2::{Digest, Sha256};
 use std::{time, vec};
 
@@ -42,7 +41,7 @@ impl Block {
 
     pub fn serialize(&self) -> Vec<u8> {
         let json_str = serde_json::to_string(self).unwrap();
-        return json_str.into_bytes();
+        json_str.into_bytes()
     }
 
     pub fn hash_transactions(&self) -> Vec<u8> {

@@ -1,5 +1,4 @@
 use crate::block::{deserialize_block, Block};
-use sled;
 
 pub struct BlockchainIterator<'a> {
     pub current_hash: Vec<u8>,
