@@ -95,14 +95,23 @@ impl CLI {
     }
 
     fn send(&self, from: String, to: String, amount: i64) {
-        let mut bc = Blockchain::new("");
+        if !wallet::validate_address(&from){
+            panic!("Sender address is not valid")
+        }
+        if !wallet::validate_address(&to){
+            panic!("Recipient address is not valid")
+        }
+        let mut bc = Blockchain::new(&from);
         let tx  = transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
         bc.mine_block(vec![tx]);
         println!("Success!");
     }
 
     fn get_balance(&self, address: String) {
-        let bc = Blockchain::new("");
+        if !wallet::validate_address(&address){
+            panic!("address is not valid")
+        }
+        let bc = Blockchain::new(&address);
         let mut balance = 0;
         let mut pub_key_hash = bs58::decode(address.clone()).into_vec().unwrap();
         pub_key_hash = pub_key_hash[1..pub_key_hash.len() - wallet::CHECKSUM_LENGTH].to_vec();

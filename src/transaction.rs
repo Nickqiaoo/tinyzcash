@@ -154,7 +154,7 @@ pub fn new_coinbase_tx(to: &str, data: &str) -> Transaction {
         txid: vec![],
         vout: -1,
         signature: vec![],
-        pub_key: vec![],
+        pub_key: data.as_bytes().to_vec(),
     };
     let txout = TXOutput::new(10, to);
     let mut tx = Transaction {

@@ -55,6 +55,12 @@ impl Blockchain {
         let b = self.db.open_tree("blocksBucket").unwrap();
         let prev_block_hash = b.get(b"l").unwrap().unwrap().to_vec();
 
+        for tx in &transactions {
+            if !self.verify_transaction(tx) {
+                panic!("Invalid transaction");
+            }
+        }
+
         let new_block = Block::new(transactions, prev_block_hash);
         self.tip = new_block.hash.to_vec();
 
