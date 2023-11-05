@@ -92,23 +92,8 @@ impl Transaction {
             let signature = context.sign(&tx_copy_message, &private_key);
             let sig = signature.serialize_compact();
         
-            tx_copy.vin[in_id].signature = sig.to_vec();
+            self.vin[in_id].signature = sig.to_vec();
         }
-        
-        // for (in_id, vin) in tx_copy.vin.iter_mut().enumerate() {
-        //     let prev_tx = prev_txs.get(&hex::encode(&vin.txid)).unwrap();
-        //     vin.signature = vec![];
-        //     vin.pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
-        //     tx_copy.id = tx_copy.hash();
-        //     vin.pub_key = vec![];
-
-        //     let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
-        //     let context = secp256k1::Secp256k1::new();
-        //     let signature = context.sign(&tx_copy_message, &private_key);
-        //     let sig = signature.serialize_compact();
-
-        //     self.vin[in_id].signature = sig.to_vec();
-        // }
     }
 
     pub fn verify(&self, prev_txs: &HashMap<String, Transaction>) -> bool {
@@ -124,7 +109,7 @@ impl Transaction {
             
             let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
     
-            let pk = secp256k1::PublicKey::from_slice(&vin.pub_key).unwrap();
+            let pk = secp256k1::PublicKey::from_slice(hex::decode(&vin.pub_key).unwrap().as_slice()).unwrap();
     
             let sig = secp256k1::Signature::from_compact(&vin.signature).unwrap();
             if !secp.verify(&tx_copy_message, &sig, &pk).is_ok() {

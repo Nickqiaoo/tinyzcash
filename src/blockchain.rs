@@ -168,7 +168,7 @@ impl Blockchain {
     }
 
     pub fn sign_transaction(&self, tx: &mut Transaction, priv_key: String) {
-        let priv_key = secp256k1::SecretKey::from_slice(priv_key.as_bytes()).unwrap();
+        let priv_key = secp256k1::SecretKey::from_slice(hex::decode(priv_key).unwrap().as_slice()).unwrap();
         let mut prev_txs = HashMap::new();
 
         for vin in tx.vin.iter() {

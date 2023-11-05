@@ -17,7 +17,7 @@ impl Block {
     pub fn new(transactions: Vec<Transaction>, prev_block_hash: Vec<u8>) -> Self {
         let timestamp = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_secs() as i64;
         let mut block = Block {
-            prev_block_hash: prev_block_hash,
+            prev_block_hash,
             transactions,
             timestamp,
             hash: vec![],
