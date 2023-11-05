@@ -1,5 +1,5 @@
+use crate::block::{deserialize_block, Block};
 use sled;
-use crate::block::{Block, deserialize_block};
 
 pub struct BlockchainIterator<'a> {
     pub current_hash: Vec<u8>,
@@ -11,12 +11,10 @@ impl<'a> BlockchainIterator<'a> {
         let mut block = None;
         let encoded_block;
         let b = self.db.open_tree("blocksBucket").unwrap();
-        match  b.get(&self.current_hash) {
-            Ok(res) => {
-                match res {
-                    Some(hash) => encoded_block = hash,
-                    None => return block,
-                }
+        match b.get(&self.current_hash) {
+            Ok(res) => match res {
+                Some(hash) => encoded_block = hash,
+                None => return block,
             },
             Err(_) => return block,
         }

@@ -1,9 +1,9 @@
-use secp256k1::{Secp256k1, PublicKey, SecretKey};
-use serde::{Deserialize, Serialize};
-use sha2::{Sha256, Digest};
-use ripemd160::{Ripemd160, Digest as RipemdDigest};
-use rand::Rng;
 use bs58;
+use rand::Rng;
+use ripemd160::{Digest as RipemdDigest, Ripemd160};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 const VERSION: u8 = 0x00;
 pub(crate) const CHECKSUM_LENGTH: usize = 4;
@@ -17,8 +17,11 @@ pub struct Wallet {
 impl Wallet {
     pub fn new() -> Wallet {
         let (private_key, public_key) = new_key_pair();
-        
-        Wallet {private_key: private_key.to_string(), public_key:  public_key.to_string()}
+
+        Wallet {
+            private_key: private_key.to_string(),
+            public_key: public_key.to_string(),
+        }
     }
 
     pub fn get_address(&self) -> String {

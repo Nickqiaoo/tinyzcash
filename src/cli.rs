@@ -1,10 +1,10 @@
 use std::{println, vec};
 
+use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction, wallet, wallets::Wallets};
 use structopt::StructOpt;
-use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction, wallets::Wallets, wallet};
 
 pub struct CLI {
-    pub cmd: Command
+    pub cmd: Command,
 }
 
 #[derive(StructOpt, Debug)]
@@ -49,7 +49,9 @@ impl CLI {
             Command::Createwallet => self.create_wallet(),
             Command::PrintChain => self.print_chain(),
             Command::ListAddress => self.list_address(),
-            Command::Send { from, to, amount } => self.send(from.to_string(), to.to_string(), amount.clone()),
+            Command::Send { from, to, amount } => {
+                self.send(from.to_string(), to.to_string(), amount.clone())
+            }
             Command::Getbalance { address } => self.get_balance(address.to_string()),
         }
     }
@@ -95,20 +97,20 @@ impl CLI {
     }
 
     fn send(&self, from: String, to: String, amount: i64) {
-        if !wallet::validate_address(&from){
+        if !wallet::validate_address(&from) {
             panic!("Sender address is not valid")
         }
-        if !wallet::validate_address(&to){
+        if !wallet::validate_address(&to) {
             panic!("Recipient address is not valid")
         }
         let mut bc = Blockchain::new(&from);
-        let tx  = transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
+        let tx = transaction::new_utxo_transaction(from.to_string(), to.to_string(), amount, &bc);
         bc.mine_block(vec![tx]);
         println!("Success!");
     }
 
     fn get_balance(&self, address: String) {
-        if !wallet::validate_address(&address){
+        if !wallet::validate_address(&address) {
             panic!("address is not valid")
         }
         let bc = Blockchain::new(&address);

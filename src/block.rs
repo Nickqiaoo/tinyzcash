@@ -1,8 +1,8 @@
-use std::{time, vec};
 use crate::{pow::ProofOfWork, transaction::Transaction};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
+use std::{time, vec};
 
 #[derive(Serialize, Deserialize)]
 pub struct Block {
@@ -15,18 +15,21 @@ pub struct Block {
 
 impl Block {
     pub fn new(transactions: Vec<Transaction>, prev_block_hash: Vec<u8>) -> Self {
-        let timestamp = time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().as_secs() as i64;
+        let timestamp = time::SystemTime::now()
+            .duration_since(time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
         let mut block = Block {
             prev_block_hash,
             transactions,
             timestamp,
             hash: vec![],
-            nonce:0,
+            nonce: 0,
         };
-        
+
         let pow = ProofOfWork::new(&block);
         let (nonce, hash) = pow.run();
-    
+
         block.hash = hash.to_vec();
         block.nonce = nonce;
 

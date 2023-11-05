@@ -168,7 +168,8 @@ impl Blockchain {
     }
 
     pub fn sign_transaction(&self, tx: &mut Transaction, priv_key: String) {
-        let priv_key = secp256k1::SecretKey::from_slice(hex::decode(priv_key).unwrap().as_slice()).unwrap();
+        let priv_key =
+            secp256k1::SecretKey::from_slice(hex::decode(priv_key).unwrap().as_slice()).unwrap();
         let mut prev_txs = HashMap::new();
 
         for vin in tx.vin.iter() {
@@ -180,7 +181,7 @@ impl Blockchain {
 
         tx.sign(priv_key, &prev_txs);
     }
-    
+
     pub fn verify_transaction(&self, tx: &Transaction) -> bool {
         let mut prev_txs = HashMap::new();
 

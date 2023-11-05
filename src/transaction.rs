@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{fmt, collections::HashMap};
+use std::{collections::HashMap, fmt};
 
-use crate::{blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput, wallets::Wallets, wallet};
+use crate::{
+    blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput, wallet,
+    wallets::Wallets,
+};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
@@ -60,7 +63,11 @@ impl Transaction {
         }
     }
 
-    pub fn sign(&mut self, private_key: secp256k1::SecretKey, prev_txs: &HashMap<String, Transaction>) {
+    pub fn sign(
+        &mut self,
+        private_key: secp256k1::SecretKey,
+        prev_txs: &HashMap<String, Transaction>,
+    ) {
         if self.is_coinbase() {
             return;
         }
@@ -76,22 +83,22 @@ impl Transaction {
             }
         }
         let mut tx_copy = self.trimmed_copy();
-        
+
         for in_id in 0..tx_copy.vin.len() {
             let mut vin = tx_copy.vin[in_id].clone();
             let prev_tx = prev_txs.get(&hex::encode(&vin.txid)).unwrap();
             vin.signature = vec![];
             vin.pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
-            
+
             tx_copy.vin[in_id] = vin;
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pub_key = vec![];
-        
+
             let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
             let context = secp256k1::Secp256k1::new();
             let signature = context.sign(&tx_copy_message, &private_key);
             let sig = signature.serialize_compact();
-        
+
             self.vin[in_id].signature = sig.to_vec();
         }
     }
@@ -99,24 +106,26 @@ impl Transaction {
     pub fn verify(&self, prev_txs: &HashMap<String, Transaction>) -> bool {
         let mut tx_copy = self.trimmed_copy();
         let secp = secp256k1::Secp256k1::new();
-        
+
         for (in_id, vin) in self.vin.iter().enumerate() {
             let prev_tx = &prev_txs[&hex::encode(&vin.txid)];
             tx_copy.vin[in_id].signature = vec![];
             tx_copy.vin[in_id].pub_key = prev_tx.vout[vin.vout as usize].pub_key_hash.clone();
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pub_key = vec![];
-            
+
             let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
-    
-            let pk = secp256k1::PublicKey::from_slice(hex::decode(&vin.pub_key).unwrap().as_slice()).unwrap();
-    
+
+            let pk =
+                secp256k1::PublicKey::from_slice(hex::decode(&vin.pub_key).unwrap().as_slice())
+                    .unwrap();
+
             let sig = secp256k1::Signature::from_compact(&vin.signature).unwrap();
             if !secp.verify(&tx_copy_message, &sig, &pk).is_ok() {
                 return false;
             }
         }
-    
+
         true
     }
 }

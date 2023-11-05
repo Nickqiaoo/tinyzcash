@@ -2,18 +2,18 @@ use structopt::StructOpt;
 
 mod block;
 mod blockchain;
-mod pow;
 mod cli;
 mod iterator;
+mod pow;
 mod transaction;
-mod transaction_output;
 mod transaction_input;
+mod transaction_output;
 mod wallet;
 mod wallets;
 
 fn main() {
-    let mut c = cli::CLI{
-        cmd:cli::Command::from_args()
+    let mut c = cli::CLI {
+        cmd: cli::Command::from_args(),
     };
     c.run();
 }

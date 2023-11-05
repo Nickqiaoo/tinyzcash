@@ -1,7 +1,7 @@
-use num::{bigint::BigUint,ToPrimitive};
-use sha2::{Sha256, Digest};
 use crate::block::Block;
 use hex::encode;
+use num::{bigint::BigUint, ToPrimitive};
+use sha2::{Digest, Sha256};
 
 const TARGET_BITS: u32 = 8;
 const MAX_NONCE: u64 = std::i64::MAX as u64;
@@ -13,8 +13,7 @@ pub struct ProofOfWork<'a> {
 
 impl<'a> ProofOfWork<'a> {
     pub fn new(block: &'a Block) -> Self {
-        let target = BigUint::from(1u64)
-                    << (256 - TARGET_BITS).to_usize().unwrap();
+        let target = BigUint::from(1u64) << (256 - TARGET_BITS).to_usize().unwrap();
 
         ProofOfWork { block, target }
     }
@@ -36,7 +35,6 @@ impl<'a> ProofOfWork<'a> {
         bytes
     }
 
-    
     pub fn validate(&self) -> bool {
         let data = self.prepare_data(self.block.nonce);
         let hash = Sha256::digest(&data);
@@ -46,7 +44,7 @@ impl<'a> ProofOfWork<'a> {
     }
 
     pub fn run(&self) -> (u64, [u8; 32]) {
-        let mut hash_int : BigUint;
+        let mut hash_int: BigUint;
         let mut hash = [0u8; 32];
         let mut nonce = 0;
 

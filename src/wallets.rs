@@ -1,11 +1,11 @@
-use serde::{Serialize, Deserialize};
+use crate::wallet::Wallet;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::io;
-use std::path::Path;
 use std::fs::File;
+use std::io;
 use std::io::Read;
-use crate::wallet::Wallet;
+use std::path::Path;
 
 const WALLET_FILE: &str = "wallets.dat";
 
@@ -46,7 +46,9 @@ impl Wallets {
 
             Ok(wallets)
         } else {
-            Ok(Wallets{ wallets: HashMap::new() })
+            Ok(Wallets {
+                wallets: HashMap::new(),
+            })
         }
     }
 
