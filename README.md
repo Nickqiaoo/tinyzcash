@@ -1,1 +1,1 @@
-# linar
+# tinyzcash
