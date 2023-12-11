@@ -93,9 +93,9 @@ impl Transaction {
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pub_key = vec![];
 
-            let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
+            let tx_copy_message = secp256k1::Message::from_digest_slice(&tx_copy.id).unwrap();
             let context = secp256k1::Secp256k1::new();
-            let signature = context.sign(&tx_copy_message, &private_key);
+            let signature = context.sign_ecdsa(&tx_copy_message, &private_key);
             let sig = signature.serialize_compact();
 
             self.vin[in_id].signature = sig.to_vec();
@@ -113,14 +113,14 @@ impl Transaction {
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pub_key = vec![];
 
-            let tx_copy_message = secp256k1::Message::from_slice(&tx_copy.id).unwrap();
+            let tx_copy_message = secp256k1::Message::from_digest_slice(&tx_copy.id).unwrap();
 
             let pk =
                 secp256k1::PublicKey::from_slice(hex::decode(&vin.pub_key).unwrap().as_slice())
                     .unwrap();
 
-            let sig = secp256k1::Signature::from_compact(&vin.signature).unwrap();
-            if secp.verify(&tx_copy_message, &sig, &pk).is_err() {
+            let sig = secp256k1::ecdsa::Signature::from_compact(&vin.signature).unwrap();
+            if secp.verify_ecdsa(&tx_copy_message, &sig, &pk).is_err() {
                 return false;
             }
         }

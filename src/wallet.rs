@@ -1,8 +1,8 @@
-use rand::Rng;
-use ripemd160::{Digest as RipemdDigest, Ripemd160};
-use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use ripemd::{Digest as RipemdDigest, Ripemd160};
+use secp256k1::rand::rngs::OsRng;
+use secp256k1::Secp256k1;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 
 const VERSION: u8 = 0x00;
 pub(crate) const CHECKSUM_LENGTH: usize = 4;
@@ -15,10 +15,11 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn new() -> Wallet {
-        let (private_key, public_key) = new_key_pair();
+        let secp = Secp256k1::new();
+        let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
 
         Wallet {
-            private_key: private_key.to_string(),
+            private_key: hex::encode(private_key.secret_bytes()),
             public_key: public_key.to_string(),
         }
     }
@@ -43,24 +44,10 @@ pub fn validate_address(address: &String) -> bool {
     actual_checksum == target_checksum
 }
 
-pub fn new_key_pair() -> (SecretKey, PublicKey) {
-    let secp = Secp256k1::new();
-    let mut rng = rand::thread_rng();
-    loop {
-        let private_key_candidate = SecretKey::from_slice(&rng.gen::<[u8; 32]>());
-        if let Ok(private_key) = private_key_candidate {
-            let public_key = PublicKey::from_secret_key(&secp, &private_key);
-            return (private_key, public_key);
-        }
-    }
-}
-
 pub fn hash_pub_key(pub_key: &[u8]) -> Vec<u8> {
     let pub_key_sha256 = Sha256::digest(pub_key);
 
-    let mut ripemd160 = Ripemd160::new();
-    ripemd160.input(pub_key_sha256);
-    ripemd160.result().to_vec()
+    Ripemd160::digest(pub_key_sha256).to_vec()
 }
 
 pub fn checksum(payload: &[u8]) -> Vec<u8> {
