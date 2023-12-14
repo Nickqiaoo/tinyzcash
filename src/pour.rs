@@ -1,5 +1,5 @@
 use crate::{
-    circuit::{self, WitnessA, WitnessX},
+    circuit::{self, WitnessA, InstanceX},
     coin::Coin,
     wallet::Wallet,
     wallets::Wallets,
@@ -39,21 +39,21 @@ pub fn pour(
     let wallet_new = wallets.get_wallet(&new_address).unwrap();
     let wallet_old = wallets.get_wallet(&old_adress).unwrap();
 
-    let sn_msg = wallet_old.private_key.as_bytes().to_vec();
-    sn_msg.extend(old_coin.rho);
+    let mut sn_msg = wallet_old.private_key.as_bytes().to_vec();
+    sn_msg.extend(&old_coin.rho);
     let old_sn = Sha256::digest(sn_msg).to_vec();
 
-    let c = Coin::new(wallet_new.public_key, new_value);
+    let c = Coin::new(&wallet_new.public_key, new_value);
     let c_info = create_c_info(&wallet_new.public_key, &c.rho, c.v, &c.r);
 
     let sig_wallet = Wallet::new();
     let h_sig = Sha256::digest(&sig_wallet.public_key).to_vec();
-    
-    let h_msg = wallet_old.private_key.as_bytes().to_vec();
-    h_msg.extend(h_sig);
+
+    let mut h_msg = wallet_old.private_key.as_bytes().to_vec();
+    h_msg.extend(&h_sig);
     let h = Sha256::digest(h_msg).to_vec();
 
-    let wx = WitnessX {
+    let wx = InstanceX {
         rt: merkle_root.clone(),
         old_sn: old_sn.clone(),
         new_cm: c.cm(),
@@ -65,12 +65,12 @@ pub fn pour(
         path: merkle_path.clone(),
         old_coin: old_coin.clone(),
         secret_key: wallet_old.private_key.clone(),
-        new_coin: c,
+        new_coin: c.clone(),
     };
 
-    let pi_pour = circuit::create_proof(wx, wa);
+    let pi_pour = circuit::create_proof(&wx, &wa);
     let sigma = create_sig(&sig_wallet.private_key, &wx, &pi_pour, &info, &c_info);
-
+    let cm = c.cm();
     (
         c,
         PourTransaction {
@@ -78,7 +78,7 @@ pub fn pour(
             vout: TXPour {
                 rt: merkle_root.clone(),
                 old_sn,
-                new_cm: c.cm(),
+                new_cm: cm,
                 public_value,
                 info,
                 pk_sig: sig_wallet.public_key,
@@ -102,14 +102,14 @@ fn create_c_info(public_key: &String, rho: &Vec<u8>, v: u64, r: &Vec<u8>) -> Vec
 
 fn create_sig(
     sk: &String,
-    x: &WitnessX,
+    x: &InstanceX,
     pi_pour: &Vec<u8>,
     info: &String,
     c_info: &Vec<u8>,
 ) -> Vec<u8> {
     let priv_key = secp256k1::SecretKey::from_slice(hex::decode(sk).unwrap().as_slice()).unwrap();
 
-    let msg = serde_json::to_string(x).unwrap();
+    let mut msg = serde_json::to_string(x).unwrap();
     msg = format!("{}{:?}{}{:?}", msg, pi_pour, info, c_info);
     let sig_message = secp256k1::Message::from_digest_slice(&msg.as_bytes()).unwrap();
 
@@ -117,4 +117,8 @@ fn create_sig(
     secp.sign_ecdsa(&sig_message, &priv_key)
         .serialize_compact()
         .to_vec()
+}
+
+pub fn verify_pour(tx: &PourTransaction) -> bool {
+   false
 }

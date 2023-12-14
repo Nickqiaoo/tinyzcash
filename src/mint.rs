@@ -15,7 +15,8 @@ pub fn mint(address: String, value: u64) -> (Coin, MintTransaction) {
     let wallets = Wallets::new();
     let wallet = wallets.get_wallet(&address).unwrap();
 
-    let c = Coin::new(wallet.public_key, value);
+    let c = Coin::new(&wallet.public_key, value);
+    let cm = c.cm();
     let k = c.get_k();
     (
         c,
@@ -24,7 +25,7 @@ pub fn mint(address: String, value: u64) -> (Coin, MintTransaction) {
             vout: TXMint {
                 v: value,
                 k,
-                cm: c.cm(),
+                cm: cm,
             },
         },
     )

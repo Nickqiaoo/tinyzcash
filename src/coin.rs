@@ -12,14 +12,14 @@ pub struct Coin {
 }
 
 impl Coin {
-    pub fn new(public_key: String, value: u64) -> Self {
+    pub fn new(public_key: &String, value: u64) -> Self {
         let rho = generate_random_bytes(256);
         let r = generate_random_bytes(384);
 
         let k = Self::get_k_inner(public_key, &rho, &r);
         let cm = Self::get_cm(&k, value);
         Coin {
-            addr_pk: public_key,
+            addr_pk: public_key.clone(),
             rho,
             v: value,
             r,
@@ -27,11 +27,11 @@ impl Coin {
         }
     }
     pub fn get_k(&self) -> Vec<u8> {
-        Self::get_k_inner(self.addr_pk, &self.rho, &self.r)
+        Self::get_k_inner(&self.addr_pk, &self.rho, &self.r)
     }
 
     //H(r || H(pk || rho))
-    fn get_k_inner(public_key: String, rho: &Vec<u8>, r: &Vec<u8>) -> Vec<u8> {
+    fn get_k_inner(public_key: &String, rho: &Vec<u8>, r: &Vec<u8>) -> Vec<u8> {
         let public_key_bytes = hex::decode(public_key).expect("Failed to decode public key");
         let secp = Secp256k1::new();
         let public_key = PublicKey::from_slice(&public_key_bytes).expect("Invalid public key");
