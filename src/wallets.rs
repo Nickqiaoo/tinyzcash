@@ -12,6 +12,7 @@ const WALLET_FILE: &str = "wallets.dat";
 #[derive(Serialize, Deserialize)]
 pub struct Wallets {
     wallets: HashMap<String, Wallet>,
+    zwallets:HashMap<String, Wallet>,
 }
 
 impl Wallets {
@@ -22,8 +23,10 @@ impl Wallets {
     pub fn create_wallet(&mut self) -> String {
         let wallet = Wallet::new();
         let address = wallet.get_address();
+        let zaddr = wallet.get_z_address();
 
         self.wallets.insert(address.clone(), wallet);
+        self.zwallets.insert(zaddr.clone(), wallet);
 
         address
     }
@@ -34,6 +37,10 @@ impl Wallets {
 
     pub fn get_wallet(&self, address: &str) -> Option<&Wallet> {
         self.wallets.get(address)
+    }
+
+    pub fn get_z_wallet(&self, address: &str) -> Option<&Wallet> {
+        self.zwallets.get(address)
     }
 
     fn load_from_file() -> io::Result<Self> {
@@ -48,6 +55,7 @@ impl Wallets {
         } else {
             Ok(Wallets {
                 wallets: HashMap::new(),
+                zwallets: HashMap::new(),
             })
         }
     }

@@ -3,6 +3,9 @@ use secp256k1::rand::rngs::OsRng;
 use secp256k1::Secp256k1;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
+use rand::RngCore;
+use rand::rngs::OsRng as randRng;
+use orchard::keys;
 
 const VERSION: u8 = 0x00;
 pub(crate) const CHECKSUM_LENGTH: usize = 4;
@@ -11,6 +14,7 @@ pub(crate) const CHECKSUM_LENGTH: usize = 4;
 pub struct Wallet {
     pub private_key: String,
     pub public_key: String,
+    pub spend_key : String,   
 }
 
 impl Wallet {
@@ -18,9 +22,15 @@ impl Wallet {
         let secp = Secp256k1::new();
         let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
 
+        let mut rng = randRng::default();
+        let mut random_bytes = [0u8; 32]; 
+        rng.fill_bytes(&mut random_bytes);
+        let spend_key = keys::SpendingKey::from_zip32_seed(&random_bytes, 0, 0).unwrap();
+
         Wallet {
             private_key: hex::encode(private_key.secret_bytes()),
             public_key: public_key.to_string(),
+            spend_key: hex::encode(spend_key.to_bytes()),
         }
     }
 
@@ -32,6 +42,22 @@ impl Wallet {
         versioned_payload.extend_from_slice(&checksum);
         bs58::encode(&versioned_payload).into_string()
     }
+    
+    pub fn get_z_address(&self) -> String {
+        let spend_key = hex::decode(&self.spend_key).unwrap();
+        let spend_key : Result<[u8; 32], _> = spend_key.try_into();
+        let spend_key = keys::SpendingKey::from_bytes(spend_key.unwrap()).unwrap();
+        let fvk: keys::FullViewingKey = (&spend_key).into();
+        let addr = fvk.address_at(0u32, keys::Scope::External);
+        hex::encode(addr.to_raw_address_bytes())
+    }
+
+    pub fn sk(&self) -> keys::SpendingKey {
+        let spend_key = hex::decode(&self.spend_key).unwrap();
+        let spend_key : Result<[u8; 32], _> = spend_key.try_into();
+        keys::SpendingKey::from_bytes(spend_key.unwrap()).unwrap()
+    }
+    
 }
 
 pub fn validate_address(address: &String) -> bool {

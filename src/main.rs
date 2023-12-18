@@ -14,6 +14,8 @@ mod transaction_input;
 mod transaction_output;
 mod wallet;
 mod wallets;
+mod deposit;
+mod transfer;
 
 fn main() {
     let mut c = cli::Cli {
