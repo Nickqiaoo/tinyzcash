@@ -10,7 +10,7 @@ use orchard::keys;
 const VERSION: u8 = 0x00;
 pub(crate) const CHECKSUM_LENGTH: usize = 4;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Wallet {
     pub private_key: String,
     pub public_key: String,

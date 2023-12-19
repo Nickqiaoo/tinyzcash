@@ -25,7 +25,7 @@ impl Wallets {
         let address = wallet.get_address();
         let zaddr = wallet.get_z_address();
 
-        self.wallets.insert(address.clone(), wallet);
+        self.wallets.insert(address.clone(), wallet.clone());
         self.zwallets.insert(zaddr.clone(), wallet);
 
         address

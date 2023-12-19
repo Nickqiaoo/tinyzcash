@@ -1,4 +1,4 @@
-use crate::{wallets::Wallets};
+use crate::{wallets::Wallets, merkle,};
 use rand::rngs::OsRng;
 use orchard::{
     builder::Builder,
@@ -27,11 +27,11 @@ pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
     // Create a shielding bundle.
     let shielding_bundle: Bundle<_, i64> = {
         // Use the empty tree.
-        let anchor = MerkleHashOrchard::empty_root(32.into()).into();
+        let anchor = merkle::MERKLE.root(0).unwrap().into();
 
         let mut builder = Builder::new(Flags::from_parts(false, true), anchor);
         assert_eq!(
-            builder.add_recipient(None, recipient, NoteValue::from_raw(5000), None),
+            builder.add_recipient(None, recipient, NoteValue::from_raw(value), None),
             Ok(())
         );
         let unauthorized = builder.build(&mut rng).unwrap();
@@ -40,18 +40,4 @@ pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
         proven.apply_signatures(rng, sighash, &[]).unwrap()
     };
     shielding_bundle
-}
-
-pub fn verify_bundle(bundle: &Bundle<Authorized, i64>) {
-    let vk = VerifyingKey::build();
-    assert!(matches!(bundle.verify_proof(&vk), Ok(())));
-    let sighash: [u8; 32] = bundle.commitment().into();
-    let bvk = bundle.binding_validating_key();
-    for action in bundle.actions() {
-        assert_eq!(action.rk().verify(&sighash, action.authorization()), Ok(()));
-    }
-    assert_eq!(
-        bvk.verify(&sighash, bundle.authorization().binding_signature()),
-        Ok(())
-    );
 }

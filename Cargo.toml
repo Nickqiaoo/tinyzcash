@@ -24,3 +24,5 @@ halo2_proofs = "0.3.0"
 plotters = { version = "0.3.0", default-features = true, optional = true }
 pasta_curves = "0.5"
 orchard = "0.6.0"
+bridgetree = "0.4"
+lazy_static = "1.4"
