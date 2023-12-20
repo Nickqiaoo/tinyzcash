@@ -1,4 +1,4 @@
-use crate::{wallets::Wallets, merkle,};
+use crate::{wallets::Wallets, merkle, wallet};
 use rand::rngs::OsRng;
 use orchard::{
     builder::Builder,
@@ -11,6 +11,7 @@ use orchard::{
     value::NoteValue,
     Bundle,
 };
+use zcash_note_encryption::try_note_decryption;
 
 
 pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
@@ -40,4 +41,30 @@ pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
         proven.apply_signatures(rng, sighash, &[]).unwrap()
     };
     shielding_bundle
+}
+
+pub fn save_note(bundle: &Bundle<Authorized, i64>, address:&String){
+    let mut wallets = Wallets::new();
+    let wallet = wallets.get_wallet(address).unwrap();
+    let sk = wallet.sk();
+    let fvk = FullViewingKey::from(&sk);
+    let ivk = PreparedIncomingViewingKey::new(&fvk.to_ivk(Scope::External));
+
+    let (note, _, _) = bundle
+        .actions()
+        .iter()
+        .find_map(|action| {
+            let domain = OrchardDomain::for_action(action);
+            try_note_decryption(&domain, &ivk, action)
+        })
+        .unwrap();
+    let n = wallet::Note{
+        value:note.value().into(),
+        rseed: *note.rseed().as_bytes(),
+        nf: *note.rho().to_bytes(),
+    };
+
+    let wallet = wallets.get_mut_wallet(address).unwrap();
+    wallet.notes.extend(n);
+    _ = wallets.save_to_file();
 }

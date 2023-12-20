@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::path::Path;
+use orchard::Address;
 
 const WALLET_FILE: &str = "wallets.dat";
 
@@ -37,6 +38,10 @@ impl Wallets {
 
     pub fn get_wallet(&self, address: &str) -> Option<&Wallet> {
         self.wallets.get(address)
+    }
+
+    pub fn get_mut_wallet(&mut self, address: &str) -> &mut Wallet {
+        self.wallets.get_mut(address)?
     }
 
     pub fn get_z_wallet(&self, address: &str) -> Option<&Wallet> {

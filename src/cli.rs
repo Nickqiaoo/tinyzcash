@@ -1,6 +1,6 @@
 use std::{println, vec};
 
-use crate::{blockchain::Blockchain, pow::ProofOfWork, transaction, wallet, wallets::Wallets};
+use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets};
 use structopt::StructOpt;
 
 pub struct Cli {
@@ -40,6 +40,13 @@ pub enum Command {
         #[structopt(help = "Address")]
         address: String,
     },
+    #[structopt(name = "deposit", about = "deposit")]
+    Deposit{
+        #[structopt(help = "address")]
+        address: String,
+        #[structopt(help = "amount")]
+        amount: u64,
+    }
 }
 
 impl Cli {
@@ -53,6 +60,7 @@ impl Cli {
                 self.send(from.to_string(), to.to_string(), *amount)
             }
             Command::Getbalance { address } => self.get_balance(address.to_string()),
+            Command::Deposit {address, amount} => self.deposit(address.to_string(), *amount),
         }
     }
 
@@ -119,4 +127,11 @@ impl Cli {
         }
         println!("Balance of '{}': {}", address, balance);
     }
+
+    fn deposit(&self, address:String, amount:u64){
+        let bundle = deposit::deposit(address, amount);
+        verify::verify_bundle(&bundle);
+        deposit::save_note(&bundle, &address);
+    }
 }
+

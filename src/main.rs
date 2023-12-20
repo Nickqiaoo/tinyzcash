@@ -13,6 +13,8 @@ mod wallets;
 mod deposit;
 mod merkle;
 mod transfer;
+mod verify;
+mod withdraw;
 
 fn main() {
     let mut c = cli::Cli {

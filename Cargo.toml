@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-dev-graph = ["halo2_proofs/dev-graph", "plotters", "plotters/bitmap_backend","plotters/bitmap_encoder"]
+dev-graph = ["halo2_proofs/dev-graph", "plotters", "plotters/bitmap_backend", "plotters/bitmap_encoder"]
 
 [dependencies]
 hex = "0.4"
@@ -26,3 +26,4 @@ pasta_curves = "0.5"
 orchard = "0.6.0"
 bridgetree = "0.4"
 lazy_static = "1.4"
+zcash_note_encryption = "0.4"

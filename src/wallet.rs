@@ -14,7 +14,20 @@ pub(crate) const CHECKSUM_LENGTH: usize = 4;
 pub struct Wallet {
     pub private_key: String,
     pub public_key: String,
-    pub spend_key : String,   
+    pub spend_key : String,
+    pub notes:Vec<Note>,
+}
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Note {
+    pub value :u64,
+    pub rseed: [u8; 32],
+    pub nf:[u8; 32],
+}
+
+impl Note {
+    pub fn to_note(&self, addr : orchard::Address) -> orchard::note {
+        Option::from(orchard::Note::from_parts(addr, self.value.into(), self.nf.into(), self.rseed.into()))?
+    }
 }
 
 impl Wallet {
@@ -31,6 +44,7 @@ impl Wallet {
             private_key: hex::encode(private_key.secret_bytes()),
             public_key: public_key.to_string(),
             spend_key: hex::encode(spend_key.to_bytes()),
+            notes :vec![],
         }
     }
 

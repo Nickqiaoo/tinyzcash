@@ -3,8 +3,9 @@ use orchard::{
     circuit::VerifyingKey,
     Bundle,
 };
+use crate::merkle;
 
-pub fn verify_bundle(bundle: &Bundle<Authorized, i64>) {
+pub fn verify_bundle(bundle: &Bundle<Authorized, i64>){
     let vk = VerifyingKey::build();
     assert!(matches!(bundle.verify_proof(&vk), Ok(())));
     let sighash: [u8; 32] = bundle.commitment().into();
