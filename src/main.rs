@@ -3,18 +3,18 @@ use structopt::StructOpt;
 mod block;
 mod blockchain;
 mod cli;
+mod deposit;
 mod iterator;
+mod merkle;
 mod pow;
 mod transaction;
 mod transaction_input;
 mod transaction_output;
+mod verify;
 mod wallet;
 mod wallets;
-mod deposit;
-mod merkle;
-mod transfer;
-mod verify;
 mod withdraw;
+mod zsend;
 
 fn main() {
     let mut c = cli::Cli {

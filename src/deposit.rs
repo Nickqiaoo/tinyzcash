@@ -1,23 +1,20 @@
-use crate::{wallets::Wallets, merkle, wallet};
-use rand::rngs::OsRng;
+use crate::{merkle, wallet, wallets::Wallets};
+use orchard::circuit::ProvingKey;
 use orchard::{
     builder::Builder,
     bundle::{Authorized, Flags},
-    circuit::{ProvingKey, VerifyingKey},
-    keys::{FullViewingKey, PreparedIncomingViewingKey, Scope, SpendAuthorizingKey, SpendingKey},
-    note::ExtractedNoteCommitment,
+    keys::{FullViewingKey, PreparedIncomingViewingKey, Scope},
     note_encryption::OrchardDomain,
-    tree::{MerkleHashOrchard, MerklePath},
     value::NoteValue,
     Bundle,
 };
+use rand::rngs::OsRng;
 use zcash_note_encryption::try_note_decryption;
 
-
-pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
+pub fn deposit(address: &String, value: u64) -> Bundle<Authorized, i64> {
     let wallets = Wallets::new();
-    let wallet = wallets.get_wallet(&address).unwrap();
-    
+    let wallet = wallets.get_wallet(address).unwrap();
+
     let mut rng = OsRng;
     let pk = ProvingKey::build();
 
@@ -43,7 +40,7 @@ pub fn deposit(address: String, value: u64) -> Bundle<Authorized, i64> {
     shielding_bundle
 }
 
-pub fn save_note(bundle: &Bundle<Authorized, i64>, address:&String){
+pub fn save_note(bundle: &Bundle<Authorized, i64>, address: &String) {
     let mut wallets = Wallets::new();
     let wallet = wallets.get_wallet(address).unwrap();
     let sk = wallet.sk();
@@ -58,13 +55,13 @@ pub fn save_note(bundle: &Bundle<Authorized, i64>, address:&String){
             try_note_decryption(&domain, &ivk, action)
         })
         .unwrap();
-    let n = wallet::Note{
-        value:note.value().into(),
+    let n = wallet::Note {
+        value: note.value().inner(),
         rseed: *note.rseed().as_bytes(),
-        nf: *note.rho().to_bytes(),
+        nf: note.rho().to_bytes(),
     };
 
-    let wallet = wallets.get_mut_wallet(address).unwrap();
-    wallet.notes.extend(n);
+    let wallet = wallets.get_mut_wallet(address);
+    wallet.notes.push(n);
     _ = wallets.save_to_file();
 }

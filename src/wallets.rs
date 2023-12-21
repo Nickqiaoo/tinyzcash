@@ -6,14 +6,13 @@ use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::path::Path;
-use orchard::Address;
 
 const WALLET_FILE: &str = "wallets.dat";
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallets {
     wallets: HashMap<String, Wallet>,
-    zwallets:HashMap<String, Wallet>,
+    zwallets: HashMap<String, String>,
 }
 
 impl Wallets {
@@ -26,8 +25,8 @@ impl Wallets {
         let address = wallet.get_address();
         let zaddr = wallet.get_z_address();
 
-        self.wallets.insert(address.clone(), wallet.clone());
-        self.zwallets.insert(zaddr.clone(), wallet);
+        self.wallets.insert(address.clone(), wallet);
+        self.zwallets.insert(zaddr, address.clone());
 
         address
     }
@@ -36,16 +35,26 @@ impl Wallets {
         self.wallets.keys().cloned().collect()
     }
 
+    pub fn get_z_addresses(&self) -> Vec<String> {
+        self.zwallets.keys().cloned().collect()
+    }
+
     pub fn get_wallet(&self, address: &str) -> Option<&Wallet> {
         self.wallets.get(address)
     }
 
     pub fn get_mut_wallet(&mut self, address: &str) -> &mut Wallet {
-        self.wallets.get_mut(address)?
+        self.wallets.get_mut(address).unwrap()
+    }
+
+    pub fn get_mut_z_wallet(&mut self, address: &str) -> &mut Wallet {
+        let addr = self.zwallets.get(address).unwrap();
+        self.wallets.get_mut(addr).unwrap()
     }
 
     pub fn get_z_wallet(&self, address: &str) -> Option<&Wallet> {
-        self.zwallets.get(address)
+        let addr = self.zwallets.get(address).unwrap();
+        self.wallets.get(addr)
     }
 
     fn load_from_file() -> io::Result<Self> {

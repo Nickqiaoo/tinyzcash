@@ -1,6 +1,9 @@
 use std::{println, vec};
 
-use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets};
+use crate::{
+    blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet,
+    wallets::Wallets, zsend,
+};
 use structopt::StructOpt;
 
 pub struct Cli {
@@ -41,26 +44,32 @@ pub enum Command {
         address: String,
     },
     #[structopt(name = "deposit", about = "deposit")]
-    Deposit{
+    Deposit {
         #[structopt(help = "address")]
         address: String,
         #[structopt(help = "amount")]
         amount: u64,
-    }
+    },
+    #[structopt(name = "zsend", about = "zsend")]
+    Zsend {
+        #[structopt(help = "from")]
+        from: String,
+        #[structopt(help = "to")]
+        to: String,
+    },
 }
 
 impl Cli {
     pub fn run(&mut self) {
         match &self.cmd {
-            Command::CreateBlockChain { address } => self.create_blockchain(address.to_string()),
+            Command::CreateBlockChain { address } => self.create_blockchain(address.clone()),
             Command::Createwallet => self.create_wallet(),
             Command::PrintChain => self.print_chain(),
             Command::ListAddress => self.list_address(),
-            Command::Send { from, to, amount } => {
-                self.send(from.to_string(), to.to_string(), *amount)
-            }
-            Command::Getbalance { address } => self.get_balance(address.to_string()),
-            Command::Deposit {address, amount} => self.deposit(address.to_string(), *amount),
+            Command::Send { from, to, amount } => self.send(from.clone(), to.clone(), *amount),
+            Command::Getbalance { address } => self.get_balance(address.clone()),
+            Command::Deposit { address, amount } => self.deposit(address.clone(), *amount),
+            Command::Zsend { from, to } => self.zsend(from.clone(), to.clone()),
         }
     }
 
@@ -79,7 +88,11 @@ impl Cli {
         let w = Wallets::new();
         let address = w.get_addresses();
         for a in &address {
-            println!("{:}", a);
+            println!("addr:{:}", a);
+        }
+        let address = w.get_z_addresses();
+        for a in &address {
+            println!("zaddr:{:}", a);
         }
     }
 
@@ -128,10 +141,15 @@ impl Cli {
         println!("Balance of '{}': {}", address, balance);
     }
 
-    fn deposit(&self, address:String, amount:u64){
-        let bundle = deposit::deposit(address, amount);
+    fn deposit(&self, address: String, amount: u64) {
+        let bundle = deposit::deposit(&address, amount);
         verify::verify_bundle(&bundle);
         deposit::save_note(&bundle, &address);
     }
-}
 
+    fn zsend(&self, from: String, to: String) {
+        let bundle = zsend::zsend(&from, &to);
+        verify::verify_bundle(&bundle);
+        zsend::save_note(&bundle, &from, &to);
+    }
+}
