@@ -1,9 +1,6 @@
 use std::{println, vec};
 
-use crate::{
-    blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet,
-    wallets::Wallets, zsend,
-};
+use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets, withdraw, zsend};
 use structopt::StructOpt;
 
 pub struct Cli {
@@ -57,6 +54,11 @@ pub enum Command {
         #[structopt(help = "to")]
         to: String,
     },
+    #[structopt(name = "withdraw", about = "withdraw")]
+    Withdraw {
+        #[structopt(help = "address")]
+        address: String,
+    },
 }
 
 impl Cli {
@@ -70,6 +72,7 @@ impl Cli {
             Command::Getbalance { address } => self.get_balance(address.clone()),
             Command::Deposit { address, amount } => self.deposit(address.clone(), *amount),
             Command::Zsend { from, to } => self.zsend(from.clone(), to.clone()),
+            Command::Withdraw {address} => self.withdraw(address.clone()),
         }
     }
 
@@ -151,5 +154,10 @@ impl Cli {
         let bundle = zsend::zsend(&from, &to);
         verify::verify_bundle(&bundle);
         zsend::save_note(&bundle, &from, &to);
+    }
+    fn withdraw(&self, address: String) {
+        let bundle = withdraw::withdraw(&address);
+        verify::verify_bundle(&bundle);
+        withdraw::save_note(&address);
     }
 }
