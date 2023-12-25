@@ -23,7 +23,7 @@ impl Blockchain {
         let b = db.open_tree("blocksBucket").unwrap();
 
         if b.is_empty() {
-            let genesis = Block::genesis(new_coinbase_tx(address, COINBASEDATA));
+            let genesis = Block::genesis(new_coinbase_tx(address, COINBASEDATA, 10));
             b.insert(&genesis.hash, genesis.serialize()).unwrap();
             b.insert(b"l", genesis.hash.as_slice()).unwrap();
             tip = genesis.hash.to_vec();

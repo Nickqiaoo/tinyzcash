@@ -6,12 +6,14 @@ use crate::{
     blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput, wallet,
     wallets::Wallets,
 };
+use crate::bundle::Bundle;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Transaction {
     pub id: Vec<u8>,
     pub vin: Vec<TXInput>,
     pub vout: Vec<TXOutput>,
+    pub bundle: Bundle,
 }
 
 impl Transaction {
@@ -59,6 +61,7 @@ impl Transaction {
             id: self.id.clone(),
             vin: inputs,
             vout: outputs,
+            bundle:Bundle::default(),
         }
     }
 
@@ -142,18 +145,19 @@ impl fmt::Display for Transaction {
     }
 }
 
-pub fn new_coinbase_tx(to: &str, data: &str) -> Transaction {
+pub fn new_coinbase_tx(to: &str, data: &str, value: i64) -> Transaction {
     let txin = TXInput {
         txid: vec![],
         vout: -1,
         signature: vec![],
         pub_key: data.as_bytes().to_vec(),
     };
-    let txout = TXOutput::new(10, to);
+    let txout = TXOutput::new(value, to);
     let mut tx = Transaction {
         id: vec![],
         vin: vec![txin],
         vout: vec![txout],
+        bundle:Bundle::default(),
     };
     tx.set_id();
 
@@ -195,6 +199,7 @@ pub fn new_utxo_transaction(from: String, to: String, amount: i64, bc: &Blockcha
         vin: inputs,
         vout: outputs,
         id: Vec::new(),
+        bundle: Bundle::default(),
     };
     tx.set_id();
     bc.sign_transaction(&mut tx, wallet.private_key.clone());

@@ -15,6 +15,7 @@ mod wallet;
 mod wallets;
 mod withdraw;
 mod zsend;
+mod bundle;
 
 fn main() {
     let mut c = cli::Cli {

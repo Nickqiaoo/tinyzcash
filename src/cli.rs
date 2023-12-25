@@ -2,15 +2,16 @@ use std::{println, vec};
 
 use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets, withdraw, zsend};
 use structopt::StructOpt;
+use crate::transaction::new_coinbase_tx;
 
 pub struct Cli {
     pub cmd: Command,
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "blockchain", about = "A simple CLI application")]
+#[structopt(name = "tinyzcash", about = "A simple CLI application")]
 pub enum Command {
-    #[structopt(name = "createBlockchain", about = "CreateBlockChain")]
+    #[structopt(name = "createblockchain", about = "createblockchain")]
     CreateBlockChain {
         #[structopt(help = "Address")]
         address: String,
@@ -19,10 +20,10 @@ pub enum Command {
     #[structopt(name = "createwallet", about = "create wallet")]
     Createwallet,
 
-    #[structopt(name = "printchain", about = "Print the chain")]
+    #[structopt(name = "printchain", about = "print the chain")]
     PrintChain,
 
-    #[structopt(name = "listaddress", about = "ListAddress")]
+    #[structopt(name = "listaddress", about = "listAddress")]
     ListAddress,
 
     #[structopt(name = "send", about = "send")]
@@ -145,8 +146,14 @@ impl Cli {
     }
 
     fn deposit(&self, address: String, amount: u64) {
+        let mut bc = Blockchain::new(&address);
+        let mut tx = transaction::new_utxo_transaction(address.clone(), "11111111111111111111".to_string(), amount as i64, &bc);
+
         let bundle = deposit::deposit(&address, amount);
         verify::verify_bundle(&bundle);
+
+        tx.bundle = (&bundle).into();
+        bc.mine_block(vec![tx]);
         deposit::save_note(&bundle, &address);
     }
 
@@ -156,8 +163,16 @@ impl Cli {
         zsend::save_note(&bundle, &from, &to);
     }
     fn withdraw(&self, address: String) {
+        let mut bc = Blockchain::new(&address);
+
         let bundle = withdraw::withdraw(&address);
         verify::verify_bundle(&bundle);
+
+        let wallets = Wallets::new();
+        let wallet = wallets.get_z_wallet(&address).unwrap();
+        let mut tx = new_coinbase_tx(&wallet.get_address(), "withdraw", *bundle.value_balance());
+        tx.bundle = (&bundle).into();
+        bc.mine_block(vec![tx]);
         withdraw::save_note(&address);
     }
 }
