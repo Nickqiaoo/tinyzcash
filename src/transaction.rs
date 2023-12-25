@@ -8,7 +8,7 @@ use crate::{
 };
 use crate::bundle::Bundle;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Transaction {
     pub id: Vec<u8>,
     pub vin: Vec<TXInput>,
@@ -17,7 +17,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    fn set_id(&mut self) {
+    pub fn set_id(&mut self) {
         let json_str = serde_json::to_string(self).unwrap();
         self.id = Sha256::digest(json_str.as_bytes()).to_vec();
     }
@@ -141,6 +141,7 @@ impl fmt::Display for Transaction {
         for (i, v) in self.vout.iter().enumerate() {
             _ = writeln!(f, "vout{}>>>{}", i, v);
         }
+        _ = writeln!(f, "{}", self.bundle);
         Ok(())
     }
 }

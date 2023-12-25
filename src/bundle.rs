@@ -60,15 +60,31 @@ impl From<&orchard::Bundle<Authorized, i64>> for Bundle {
     }
 }
 
-// impl fmt::Display for Bundle {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         _ = writeln!(f, "{}", hex::encode(&self.id));
-//         for (i, v) in self.vin.iter().enumerate() {
-//             _ = writeln!(f, "vin{}>>>{}", i, v);
-//         }
-//         for (i, v) in self.vout.iter().enumerate() {
-//             _ = writeln!(f, "vout{}>>>{}", i, v);
-//         }
-//         Ok(())
-//     }
-// }
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Nullifier: {}", self.nullifier)?;
+        writeln!(f, "rk: {}", self.rk)?;
+        writeln!(f, "cmx: {}", self.cmx)?;
+        writeln!(f, "OutCiphertext: {}", self.out_ciphertext)?;
+        writeln!(f, "EphemeralKey: {}", self.ephemeral_key)?;
+        writeln!(f, "EncCiphertext: {}", self.enc_ciphertext)?;
+        writeln!(f, "cv: {}", self.cv)?;
+        writeln!(f, "SpendAuthSig: {}", self.spend_auth_sig)
+    }
+}
+
+impl fmt::Display for Bundle {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        _ = writeln!(f, "Flags: {}", self.flags);
+        _ = writeln!(f, "ValueBalance: {}", self.value_balance);
+        _ = writeln!(f, "Anchor: {}", self.anchor);
+        _ = writeln!(f, "Proof: {}", self.proof);
+        _ = writeln!(f, "BindingSignature: {}", self.binding_sig);
+
+        for (i, action) in self.actions.iter().enumerate() {
+            _ = writeln!(f, "Action {}:\n{}", i, action);
+        }
+
+        Ok(())
+    }
+}

@@ -2,7 +2,7 @@ use std::{println, vec};
 
 use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets, withdraw, zsend};
 use structopt::StructOpt;
-use crate::transaction::new_coinbase_tx;
+use crate::transaction::{new_coinbase_tx, Transaction};
 
 pub struct Cli {
     pub cmd: Command,
@@ -158,8 +158,15 @@ impl Cli {
     }
 
     fn zsend(&self, from: String, to: String) {
+        let mut bc = Blockchain::new(&from);
+
         let bundle = zsend::zsend(&from, &to);
         verify::verify_bundle(&bundle);
+
+        let mut tx = Transaction::default();
+        tx.bundle = (&bundle).into();
+        tx.set_id();
+        bc.mine_block(vec![tx]);
         zsend::save_note(&bundle, &from, &to);
     }
     fn withdraw(&self, address: String) {
