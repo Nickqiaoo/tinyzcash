@@ -45,7 +45,7 @@ impl Wallet {
         let secp = Secp256k1::new();
         let (private_key, public_key) = secp.generate_keypair(&mut OsRng);
 
-        let mut rng = randRng::default();
+        let mut rng = randRng;
         let mut random_bytes = [0u8; 32];
         rng.fill_bytes(&mut random_bytes);
         let spend_key = keys::SpendingKey::from_zip32_seed(&random_bytes, 0, 0).unwrap();
