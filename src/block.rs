@@ -52,7 +52,7 @@ impl Block {
         }
 
         let concatenated_hashes = tx_hashes.concat();
-        Sha256::digest(&concatenated_hashes).to_vec()
+        Sha256::digest(concatenated_hashes).to_vec()
     }
 }
 

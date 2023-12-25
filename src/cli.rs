@@ -1,8 +1,11 @@
 use std::{println, vec};
 
-use crate::{blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet, wallets::Wallets, withdraw, zsend};
+use crate::transaction::new_coinbase_tx;
+use crate::{
+    blockchain::Blockchain, deposit, pow::ProofOfWork, transaction, verify, wallet,
+    wallets::Wallets, withdraw, zsend,
+};
 use structopt::StructOpt;
-use crate::transaction::{new_coinbase_tx, Transaction};
 
 pub struct Cli {
     pub cmd: Command,
@@ -73,7 +76,7 @@ impl Cli {
             Command::Getbalance { address } => self.get_balance(address.clone()),
             Command::Deposit { address, amount } => self.deposit(address.clone(), *amount),
             Command::Zsend { from, to } => self.zsend(from.clone(), to.clone()),
-            Command::Withdraw {address} => self.withdraw(address.clone()),
+            Command::Withdraw { address } => self.withdraw(address.clone()),
         }
     }
 
@@ -147,7 +150,12 @@ impl Cli {
 
     fn deposit(&self, address: String, amount: u64) {
         let mut bc = Blockchain::new(&address);
-        let mut tx = transaction::new_utxo_transaction(address.clone(), "11111111111111111111".to_string(), amount as i64, &bc);
+        let mut tx = transaction::new_utxo_transaction(
+            address.clone(),
+            "11111111111111111111".to_string(),
+            amount as i64,
+            &bc,
+        );
 
         let bundle = deposit::deposit(&address, amount);
         verify::verify_bundle(&bundle);
@@ -163,8 +171,10 @@ impl Cli {
         let bundle = zsend::zsend(&from, &to);
         verify::verify_bundle(&bundle);
 
-        let mut tx = Transaction::default();
-        tx.bundle = (&bundle).into();
+        let mut tx = transaction::Transaction {
+            bundle: (&bundle).into(),
+            ..Default::default()
+        };
         tx.set_id();
         bc.mine_block(vec![tx]);
         zsend::save_note(&bundle, &from, &to);

@@ -37,7 +37,7 @@ impl<'a> ProofOfWork<'a> {
 
     pub fn validate(&self) -> bool {
         let data = self.prepare_data(self.block.nonce);
-        let hash = Sha256::digest(&data);
+        let hash = Sha256::digest(data);
         let hash_int = BigUint::from_bytes_le(&hash);
 
         hash_int < self.target

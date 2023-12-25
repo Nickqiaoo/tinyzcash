@@ -183,7 +183,7 @@ impl Blockchain {
 
     pub fn verify_transaction(&self, tx: &Transaction) -> bool {
         if tx.is_coinbase() {
-            return true
+            return true;
         }
         let mut prev_txs = HashMap::new();
 

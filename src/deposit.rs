@@ -11,7 +11,7 @@ use orchard::{
 use rand::rngs::OsRng;
 use zcash_note_encryption::try_note_decryption;
 
-pub fn deposit(address: &String, value: u64) -> Bundle<Authorized, i64> {
+pub fn deposit(address: &str, value: u64) -> Bundle<Authorized, i64> {
     let wallets = Wallets::new();
     let wallet = wallets.get_wallet(address).unwrap();
 
@@ -40,7 +40,7 @@ pub fn deposit(address: &String, value: u64) -> Bundle<Authorized, i64> {
     shielding_bundle
 }
 
-pub fn save_note(bundle: &Bundle<Authorized, i64>, address: &String) {
+pub fn save_note(bundle: &Bundle<Authorized, i64>, address: &str) {
     let mut wallets = Wallets::new();
     let wallet = wallets.get_wallet(address).unwrap();
     let sk = wallet.sk();

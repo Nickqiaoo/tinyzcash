@@ -14,7 +14,7 @@ use orchard::{
 use rand::rngs::OsRng;
 use zcash_note_encryption::try_note_decryption;
 
-pub fn zsend(from: &String, to: &String) -> Bundle<Authorized, i64> {
+pub fn zsend(from: &str, to: &str) -> Bundle<Authorized, i64> {
     let wallets = Wallets::new();
 
     let mut rng = OsRng;
@@ -47,10 +47,7 @@ pub fn zsend(from: &String, to: &String) -> Bundle<Authorized, i64> {
         assert_eq!(anchor, merkle_path.root(cmx));
 
         let mut builder = Builder::new(Flags::from_parts(true, true), anchor);
-        assert_eq!(
-            builder.add_spend(from_fvk, note, merkle_path),
-            Ok(())
-        );
+        assert_eq!(builder.add_spend(from_fvk, note, merkle_path), Ok(()));
         assert_eq!(
             builder.add_recipient(None, recipient, NoteValue::from_raw(old_note.value), None),
             Ok(())
@@ -65,7 +62,7 @@ pub fn zsend(from: &String, to: &String) -> Bundle<Authorized, i64> {
     shielded_bundle
 }
 
-pub fn save_note(bundle: &Bundle<Authorized, i64>, from: &String, to: &String) {
+pub fn save_note(bundle: &Bundle<Authorized, i64>, from: &str, to: &str) {
     let mut wallets = Wallets::new();
     let to_wallet = wallets.get_z_wallet(to).unwrap();
     let to_sk = to_wallet.sk();

@@ -2,6 +2,7 @@ use structopt::StructOpt;
 
 mod block;
 mod blockchain;
+mod bundle;
 mod cli;
 mod deposit;
 mod iterator;
@@ -15,7 +16,6 @@ mod wallet;
 mod wallets;
 mod withdraw;
 mod zsend;
-mod bundle;
 
 fn main() {
     let mut c = cli::Cli {

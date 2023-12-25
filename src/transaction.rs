@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::HashMap, fmt};
 
+use crate::bundle::Bundle;
 use crate::{
     blockchain::Blockchain, transaction_input::TXInput, transaction_output::TXOutput, wallet,
     wallets::Wallets,
 };
-use crate::bundle::Bundle;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Transaction {
@@ -61,7 +61,7 @@ impl Transaction {
             id: self.id.clone(),
             vin: inputs,
             vout: outputs,
-            bundle:Bundle::default(),
+            bundle: Bundle::default(),
         }
     }
 
@@ -158,7 +158,7 @@ pub fn new_coinbase_tx(to: &str, data: &str, value: i64) -> Transaction {
         id: vec![],
         vin: vec![txin],
         vout: vec![txout],
-        bundle:Bundle::default(),
+        bundle: Bundle::default(),
     };
     tx.set_id();
 

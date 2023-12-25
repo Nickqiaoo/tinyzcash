@@ -1,15 +1,15 @@
+use crate::wallets::Wallets;
 use bridgetree::BridgeTree;
 use orchard::builder::Builder;
-use orchard::Bundle;
 use orchard::bundle::{Authorized, Flags};
 use orchard::circuit::ProvingKey;
 use orchard::keys::{FullViewingKey, SpendAuthorizingKey};
 use orchard::note::ExtractedNoteCommitment;
 use orchard::tree::{MerkleHashOrchard, MerklePath};
+use orchard::Bundle;
 use rand::rngs::OsRng;
-use crate::wallets::Wallets;
 
-pub fn withdraw(address: &String) -> Bundle<Authorized, i64> {
+pub fn withdraw(address: &str) -> Bundle<Authorized, i64> {
     let wallets = Wallets::new();
     let wallet = wallets.get_z_wallet(address).unwrap();
 
@@ -39,10 +39,7 @@ pub fn withdraw(address: &String) -> Bundle<Authorized, i64> {
         assert_eq!(anchor, merkle_path.root(cmx));
 
         let mut builder = Builder::new(Flags::from_parts(true, false), anchor);
-        assert_eq!(
-            builder.add_spend(fvk, note, merkle_path),
-            Ok(())
-        );
+        assert_eq!(builder.add_spend(fvk, note, merkle_path), Ok(()));
         let unauthorized = builder.build(&mut rng).unwrap();
         let sighash = unauthorized.commitment().into();
         let proven = unauthorized.create_proof(&pk, &mut rng).unwrap();
@@ -53,7 +50,7 @@ pub fn withdraw(address: &String) -> Bundle<Authorized, i64> {
     shielding_bundle
 }
 
-pub fn save_note(address: &String) {
+pub fn save_note(address: &str) {
     let mut wallets = Wallets::new();
     let wallet = wallets.get_mut_z_wallet(address);
     wallet.notes.remove(0);
